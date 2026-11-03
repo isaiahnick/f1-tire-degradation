@@ -1,0 +1,18 @@
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+.venv/
+.env
+
+# data: raw + processed parquet are committed (small, and the project should not
+# depend on the API being up). Archive clones, FastF1 cache and interim are rebuilt.
+data/external/
+data/interim/
+
+# OS / editors
+.DS_Store
+.vscode/
+.idea/

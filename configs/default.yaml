@@ -1,0 +1,75 @@
+# PitWall pipeline config. Every stage reads this file.
+# Change values here, not in code, so runs stay reproducible.
+
+seed: 42
+
+seasons: [2023, 2024, 2025]
+train_seasons: [2023, 2024]   # model fitting + grouped CV
+test_seasons: [2025]          # locked holdout, only touched for final evaluation
+
+paths:
+  external: data/external     # archive clones / FastF1 cache
+  raw: data/raw               # one canonical parquet per race
+  interim: data/interim       # cleaned laps (all laps + filter flags)
+  processed: data/processed   # model-ready feature table
+  figures: reports/figures
+  metrics: reports/metrics
+
+ingest:
+  # "archive": TracingInsights GitHub archive (FastF1 output saved per session).
+  # "fastf1":  call the FastF1 API directly (needs access to livetiming.formula1.com).
+  source: archive
+  archive:
+    url: https://github.com/TracingInsights/{year}
+    # pinned commits so every teammate ingests the exact same files
+    commits:
+      2023: 737c84d3ae14b9883a671ca248d015b69cf1cb58
+      2024: d1543a71370d9b617b627319f8ad80b2f85dfd5e
+      2025: dfb3ea3f50b69857fe8e40cabe5e899743c59f6a
+
+cleaning:
+  dry_compounds: [SOFT, MEDIUM, HARD]
+  wet_compounds: [INTERMEDIATE, WET]
+  wet_race_lap_share: 0.10    # drop a race if >10% of its laps are on inter/wet tires
+  sc_track_codes: ["4", "5", "6", "7"]   # SC, red flag, VSC, VSC ending
+  quicklap_threshold: 1.07    # drop laps slower than 107% of the race's fastest lap
+  outlier_window: 5           # rolling median window inside a stint
+  outlier_mad_k: 5.0          # robust z cutoff for within-stint outliers
+  outlier_min_s: 1.0          # never flag a residual smaller than this (seconds)
+  # Monaco is excluded on purpose: 2024 was a red-flag one-stop race driven well off
+  # pace, and 2025 had a mandatory two-stop rule with deliberate slow driving, so lap
+  # times there reflect race management, not tire wear (val MAE was ~3x other races).
+  exclude_events: [Monaco Grand Prix]
+
+fuel:
+  start_kg: 110.0             # max race fuel allowed, assumed burned linearly to 0
+  s_per_kg: 0.03              # lap time cost per kg of fuel (about 0.3 s per 10 kg)
+
+target:
+  reference_laps: 3           # stint reference pace = median of first 3 clean laps
+  min_clean_laps: 6           # stint must have 3 reference laps + 3 target laps
+  history_laps: 5             # setup B: first 5 target laps are "observed", forecast the rest
+
+features:
+  numeric:
+    - stint_lap
+    - tyre_life
+    - tyre_life_start
+    - stint
+    - fresh_tyre
+    - track_temp
+    - air_temp
+    - humidity
+    - laps_remaining
+    - race_progress
+    - gap_ahead_s
+    - position
+  categorical:
+    - compound
+    - circuit
+    - team
+  # setup B adds what a strategist already knows mid-stint (first laps on the set)
+  history: [early_deg_mean, early_deg_slope, laps_ahead]
+
+cv:
+  n_splits: 5                 # GroupKFold by race

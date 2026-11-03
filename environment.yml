@@ -1,0 +1,10 @@
+# conda env create -f environment.yml && conda activate pitwall
+name: pitwall
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+  - git
+  - pip:
+      - -e .[dev]

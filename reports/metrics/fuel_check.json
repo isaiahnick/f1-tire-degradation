@@ -1,0 +1,14 @@
+{
+  "pooled_s_per_kg": 0.0314,
+  "per_race_median_s_per_kg": 0.031893969436329675,
+  "per_race_iqr": [
+    0.027024758451865978,
+    0.03789656121472184
+  ],
+  "n_races": 40,
+  "wear_rate_s_per_lap": {
+    "SOFT": 0.0643,
+    "MEDIUM": 0.0501,
+    "HARD": 0.0438
+  }
+}

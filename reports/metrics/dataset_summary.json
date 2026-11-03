@@ -1,0 +1,46 @@
+{
+  "rows": 45642,
+  "stints": 2707,
+  "races": 60,
+  "by_split": {
+    "test": {
+      "rows": 15711,
+      "races": 20,
+      "stints": 868
+    },
+    "train": {
+      "rows": 29931,
+      "races": 40,
+      "stints": 1839
+    }
+  },
+  "rows_per_fold": {
+    "0": 6017,
+    "1": 6007,
+    "2": 5999,
+    "3": 5895,
+    "4": 6013
+  },
+  "n_numeric": 12,
+  "n_categorical": 3,
+  "n_interactions": 5,
+  "target_train": {
+    "count": 29931.0,
+    "mean": 0.572,
+    "std": 0.819,
+    "min": -3.13,
+    "25%": 0.018,
+    "50%": 0.525,
+    "75%": 1.087,
+    "max": 4.63
+  },
+  "forecast_rows_by_split": {
+    "test": 11430,
+    "train": 20899
+  },
+  "forecast_stints_by_split": {
+    "test": 808,
+    "train": 1661
+  },
+  "missing_after_features": 0
+}
