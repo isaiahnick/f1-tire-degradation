@@ -138,7 +138,7 @@ pres.addSection({ title: "Data and Features" });
 s = slideWith("Data and Preprocessing", "Data and Features");
 bullets(s, [
   "FastF1 timing data for every race from 2022 to 2025, plus practice sessions (pinned archive)",
-  "Target: how much slower a lap is than the first 3 laps of its stint, after removing the fuel effect",
+  "Target: how much slower a lap is than the first 3 laps of its stint, after removing the fuel effect (cars gain ~0.03 s per kg of fuel burned)",
   "Train: 2022-2024 (58 races)   Test: 2025 (20 races)",
 ], 0.45, 1.15, 4.4, 1.8, 13, 5);
 const funnel = [["Raw laps", 101297], ["Wet races, Monaco removed", 86014], ["Lap 1, pit laps, safety car, rain removed", 72759],

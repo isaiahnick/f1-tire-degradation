@@ -17,7 +17,7 @@ module.exports = [
   N("ANAND | ~50 s",
     "- Source: FastF1, the official F1 timing data. The live feed now needs a paid login, so we use a saved archive, pinned so anyone gets the same data",
     "- Cleaning keeps only laps where lap time reflects tire wear: no rain, no Monaco (not raced at full pace), no lap 1, pit or safety car laps, no outliers",
-    "- Fuel: cars get faster as fuel burns (~0.03 s per kg). We subtract that; our data estimated 0.031, so the assumption holds",
+    "- Fuel effect: cars start with up to 110 kg of fuel and get ~0.03 s per lap faster for every kg burned. Over a stint that hides tire wear, so we subtract it (our data estimated 0.031)",
     "- Target: seconds slower than the first 3 laps of the stint = time lost to tire wear",
     "- Chart: softs wear fastest, then mediums, then hards, as expected",
     "- If asked about the medium dip near lap 30: very few stints run that long and drivers are managing them; the wide band shows the uncertainty",
