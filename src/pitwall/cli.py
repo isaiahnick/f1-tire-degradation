@@ -1,6 +1,7 @@
 """Command line entry point: `python -m pitwall <stage>`.
 
-Stages run in order: ingest -> clean -> features -> train. `all` runs every stage.
+Midpoint stages: ingest -> clean -> features -> train (`all` runs these).
+Final stages:    tune -> lstm -> test -> strategy (`final` runs these).
 """
 from __future__ import annotations
 
@@ -11,7 +12,8 @@ from .config import load_config
 
 def main(argv: list[str] | None = None) -> None:
     p = argparse.ArgumentParser(prog="pitwall")
-    p.add_argument("stage", choices=["ingest", "clean", "features", "train", "all"])
+    p.add_argument("stage", choices=["ingest", "clean", "features", "train", "all",
+                                          "tune", "lstm", "test", "strategy", "final"])
     p.add_argument("--config", default=None, help="path to YAML config")
     p.add_argument("--source", choices=["archive", "fastf1"], default=None,
                    help="override ingest.source from the config")
@@ -28,6 +30,19 @@ def main(argv: list[str] | None = None) -> None:
         features.run(cfg)
     if args.stage in ("train", "all"):
         train.run(cfg)
+    if args.stage in ("tune", "final"):
+        from . import tune
+        tune.run(cfg)
+    if args.stage in ("lstm", "final"):
+        from . import lstm
+        from .tune import final_config
+        lstm.run(final_config(cfg))
+    if args.stage in ("test", "final"):
+        from . import test
+        test.run(cfg)
+    if args.stage in ("strategy", "final"):
+        from . import strategy
+        strategy.run(cfg)
 
 
 if __name__ == "__main__":

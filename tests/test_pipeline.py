@@ -66,3 +66,48 @@ def test_splits_group_by_race_and_lock_test_season():
     assert (out.loc[out["year"] == 2025, "split"] == "test").all()
     assert (out.loc[out["split"] == "test", "cv_fold"] == -1).all()
     assert out[out["split"] == "train"].groupby("race_id")["cv_fold"].nunique().max() == 1
+
+
+# ---------------------------------------------------------------- final stages
+class _Const:
+    """Stand-in model: loss grows linearly with laps on the set."""
+
+    def __init__(self, rate):
+        self.rate = rate
+
+    def predict(self, X):
+        return self.rate * X["stint_lap"].to_numpy(float)
+
+
+def _state():
+    return pd.Series({"lap_number": 10, "stint_lap": 8.0, "tyre_life": 8.0, "tyre_life_start": 1.0,
+                      "stint": 1.0, "fresh_tyre": 1, "laps_remaining": 40, "race_progress": 0.2,
+                      "gap_ahead_s": 2.0, "position": 5.0, "track_temp": 40.0, "air_temp": 25.0,
+                      "humidity": 50.0, "compound": "MEDIUM", "circuit": "X", "team": "Y",
+                      "early_deg_mean": 0.3, "early_deg_slope": 0.05, "stint_id": "s1", "total_laps": 50})
+
+
+def test_recommend_matches_brute_force():
+    from pitwall.strategy import recommend
+    cfg = load_config()
+    s = _state()
+    old, new = _Const(0.08), _Const(0.04)
+    table, best = recommend(s, segment_end=40, next_compound="HARD", next_life_start=1,
+                            next_fresh=True, model_B=old, model_A=new, cfg=cfg)
+    # brute force: old set runs laps 11..p at stint_lap 9.., new set runs laps p+1..40
+    def cost(p):
+        o = sum(0.08 * (8 + (lap - 10)) for lap in range(11, p + 1))
+        n = sum(0.04 * j for j in range(1, 40 - p + 1))
+        return o + n
+    best_cost = min(cost(p) for p in range(10, 40))
+    assert cost(best) == pytest.approx(best_cost)           # ties are allowed
+    assert table["cost_s"].min() == pytest.approx(best_cost)
+
+
+def test_old_tire_rows_only_use_decision_state():
+    from pitwall.strategy import old_tire_rows
+    rows = old_tire_rows(_state(), np.array([11, 12, 13]))
+    assert list(rows["stint_lap"]) == [9, 10, 11]
+    assert list(rows["laps_ahead"]) == [1, 2, 3]
+    assert (rows["gap_ahead_s"] == 2.0).all()          # future gap = gap known now
+    assert list(rows["laps_remaining"]) == [39, 38, 37]

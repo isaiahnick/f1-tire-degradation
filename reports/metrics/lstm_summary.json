@@ -1,0 +1,32 @@
+{
+  "best_hp": {
+    "hidden": 128,
+    "dropout": 0.4,
+    "lr": 0.0003
+  },
+  "seeds": {
+    "42": {
+      "train_mae": 0.3813,
+      "val_mae": 0.4513,
+      "val_rmse": 0.5932,
+      "val_r2": 0.4912
+    },
+    "43": {
+      "train_mae": 0.3946,
+      "val_mae": 0.4655,
+      "val_rmse": 0.6082,
+      "val_r2": 0.4627
+    },
+    "44": {
+      "train_mae": 0.3848,
+      "val_mae": 0.4601,
+      "val_rmse": 0.6034,
+      "val_r2": 0.4733
+    }
+  },
+  "val_mae_mean": 0.459,
+  "val_mae_sd_across_seeds": 0.0072,
+  "train_mae_mean": 0.3869,
+  "val_r2_mean": 0.4758,
+  "median_best_epoch": 8.0
+}

@@ -5,7 +5,10 @@ and can be rerun any time:
 
     python scripts/make_figures.py
 
-Writes four PNGs (300 dpi) to reports/figures/report/, numbered like the report:
+Midpoint figures (needs `make all`) go to reports/figures/report/; final figures
+(needs `make final`, run with --final) go to reports/figures/final/.
+
+Midpoint PNGs (300 dpi), numbered like the midpoint report:
     fig1_degradation.png      Figure 1  lap time loss by laps on the set, per compound
     fig2_importance.png       Figure 2  permutation importance, Setup A vs Setup B
     fig3_depth_curve.png      Figure 3  decision tree train vs validation MAE by depth
@@ -169,8 +172,154 @@ def fig4_sample_stints():
     save(fig, "fig4_sample_stints.png")
 
 
+# ================================================================ final figures
+FINAL = ROOT / "reports" / "figures" / "final"
+YELLOW, MAGENTA = "#eda100", "#e87ba4"
+MODEL_COLOR = {"Linear baseline": GREY, "Ridge": ORANGE, "Random forest": BLUE,
+               "Gradient boosting": GREEN, "LSTM": MAGENTA, "Decision tree": YELLOW}
+
+
+def save_final(fig, name):
+    FINAL.mkdir(parents=True, exist_ok=True)
+    fig.savefig(FINAL / name)
+    plt.close(fig)
+    print(f"wrote {FINAL / name}")
+
+
+def final_results():
+    """2025 test MAE (filled) vs training MAE (hollow) for every model, both setups."""
+    r = pd.read_csv(METRICS / "test_results.csv")
+    lstm = r[r["model"].str.startswith("LSTM (")]
+    r = r[~r["model"].str.startswith("LSTM (") & ~r["model"].isin(["Rule: extrapolate", "Mean (dummy)"])]
+    r = r.assign(lo=np.nan, hi=np.nan)
+    if len(lstm):
+        r = pd.concat([r, pd.DataFrame([{"setup": "B", "model": "LSTM", "train_mae": lstm["train_mae"].mean(),
+                                         "test_mae": lstm["test_mae"].mean(),
+                                         "lo": lstm["test_mae"].min(), "hi": lstm["test_mae"].max()}])])
+    fig, axes = plt.subplots(1, 2, figsize=(9.6, 3.6), sharex=True, gridspec_kw={"wspace": 0.62})
+    for ax, setup, title in [(axes[0], "A", "Setup A: race conditions only"),
+                             (axes[1], "B", "Setup B: + first 5 laps of the stint")]:
+        d = r[r["setup"] == setup].sort_values("test_mae", ascending=False).reset_index(drop=True)
+        y = np.arange(len(d))
+        base = d.loc[d["model"] == "Linear baseline", "test_mae"].iloc[0]
+        ax.axvline(base, color=GREY, linestyle=(0, (4, 2)), linewidth=1.2, zorder=1)
+        ax.hlines(y, d["train_mae"], d["test_mae"], color=GRID, linewidth=2.5, zorder=1)
+        ax.scatter(d["train_mae"], y, s=46, facecolor="white", edgecolor=INK2, linewidth=1.3, zorder=3)
+        colors = [MODEL_COLOR.get(m, GREY) for m in d["model"]]
+        ax.scatter(d["test_mae"], y, s=70, color=colors, zorder=4)
+        for k in d.index[d["lo"].notna()]:
+            ax.hlines(y[k], d.loc[k, "lo"], d.loc[k, "hi"], color=MAGENTA, linewidth=4, alpha=0.4, zorder=2)
+        for yi, (m, v) in enumerate(zip(d["model"], d["test_mae"])):
+            pct = 100 * (base - v) / base
+            right = max(v, d.loc[yi, "train_mae"], d.loc[yi, "hi"] if pd.notna(d.loc[yi, "hi"]) else 0)
+            lab = "baseline" if m == "Linear baseline" else f"{pct:+.0f}%"
+            ax.text(right + 0.022, yi, lab, va="center", fontsize=8.5,
+                    color=INK if (pct > 0 and m != "Linear baseline") else MUTED,
+                    fontweight="bold" if pct > 15 else "normal")
+        ax.set_yticks(y, [m.replace("Rule: flat", "Carry early loss forward") for m in d["model"]])
+        ax.grid(axis="y", visible=False)
+        ax.grid(axis="x", visible=True)
+        ax.spines["left"].set_visible(False)
+        ax.set_title(title)
+        ax.set_xlabel("MAE of lap time loss (s)")
+    axes[0].set_xlim(0.25, 0.80)
+    fig.text(0.125, -0.07, "Filled dot: 2025 test MAE (unseen season).  Hollow dot: training MAE.  "
+             "Dashed line: linear baseline.  LSTM: mean of 3 seeds, shaded bar shows the range.",
+             fontsize=8, color=MUTED)
+    save_final(fig, "final_results.png")
+
+
+def final_horizon():
+    d = pd.read_csv(METRICS / "test_error_by_horizon.csv")
+    labels = ["1-5", "6-10", "11-15", "16-20", "21+"]
+    x = np.arange(len(d))
+    fig, ax = plt.subplots(figsize=(6.4, 3.4))
+    ends = {}
+    for m in ["Linear baseline", "LSTM", "Gradient boosting", "Random forest", "Ridge"]:
+        ls = (0, (4, 2)) if m == "Linear baseline" else "-"
+        ax.plot(x, d[m], color=MODEL_COLOR[m], linewidth=2.2, linestyle=ls, marker="o", ms=4.5,
+                mec="white", mew=0.8)
+        ends[m] = d[m].iloc[-1]
+    # spread end labels so they never overlap
+    order = sorted(ends, key=ends.get)
+    ypos, last = {}, -1
+    for m in order:
+        yv = max(ends[m], last + 0.035)
+        ypos[m], last = yv, yv
+    for m in order:
+        ax.text(x[-1] + 0.12, ypos[m], m, color=MODEL_COLOR[m] if m != "Linear baseline" else INK2,
+                fontsize=8.5, fontweight="bold", va="center")
+    ax.set_xticks(x, labels)
+    ax.set_xlim(-0.2, x[-1] + 1.5)
+    ax.set_ylim(0, 0.8)
+    ax.set_xlabel("Laps ahead of the decision point")
+    ax.set_ylabel("2025 test MAE (s)")
+    save_final(fig, "final_horizon.png")
+
+
+def final_importance(n_rows=4000):
+    """Permutation importance of the final Setup B gradient boosting model on 2025 laps."""
+    import joblib
+    from sklearn.inspection import permutation_importance
+
+    from pitwall.models import feature_lists
+    obj = joblib.load(ROOT / "models" / "final_B.joblib")
+    cfg, model = obj["cfg"], obj["models"]["Gradient boosting"]
+    num, cat, inter = feature_lists(cfg, "B")
+    df = pd.read_parquet(FEATURES)
+    te = df[(df["split"] == "test") & df["in_forecast"]].sample(n_rows, random_state=42)
+    feats = num + cat + inter
+    r = permutation_importance(model, te[feats], te["deg_s"], scoring="neg_mean_absolute_error",
+                               n_repeats=5, random_state=42, n_jobs=-1)
+    d = pd.DataFrame({"feature": feats, "mean": r.importances_mean, "std": r.importances_std})
+    d = d[~d["feature"].isin(inter)].nlargest(8, "mean").iloc[::-1]
+    d.to_csv(METRICS / "final_importance_test.csv", index=False)
+    fig, ax = plt.subplots(figsize=(5.6, 3.3))
+    y = np.arange(len(d))
+    ax.barh(y, d["mean"], color=BLUE, height=0.62, zorder=2)
+    ax.errorbar(d["mean"], y, xerr=d["std"], fmt="none", ecolor=INK2, elinewidth=0.8, zorder=3)
+    ax.set_yticks(y, [NICE.get(f, f) for f in d["feature"]])
+    ax.grid(axis="y", visible=False)
+    ax.grid(axis="x", visible=True)
+    ax.spines["left"].set_visible(False)
+    ax.set_xlabel("Increase in 2025 test MAE when shuffled (s)")
+    save_final(fig, "final_importance.png")
+
+
+def final_pit_backtest():
+    s = pd.read_csv(METRICS / "strategy_summary.csv")
+    s["label"] = s["method"].str.replace(" (no model)", "", regex=False)
+    fig, ax = plt.subplots(figsize=(6.4, 3.2))
+    y = np.arange(len(s))[::-1].astype(float)
+    h = 0.36
+    ax.barh(y + h / 2, s["within_3_laps_pct"], height=h, color=BLUE, zorder=2,
+            label="Recommended lap within 3 laps of the real stop")
+    ax.barh(y - h / 2, s["actual_in_window_pct"].fillna(0), height=h, color=ORANGE, zorder=2,
+            label="Real stop inside the 1-second pit window")
+    for yi, a, b in zip(y, s["within_3_laps_pct"], s["actual_in_window_pct"]):
+        ax.text(a + 1, yi + h / 2, f"{a:.0f}%", va="center", fontsize=8.5)
+        ax.text((b if pd.notna(b) else 0) + 1, yi - h / 2, f"{b:.0f}%" if pd.notna(b) else "n/a",
+                va="center", fontsize=8.5, color=INK if pd.notna(b) else MUTED)
+    ax.set_yticks(y, s["label"])
+    ax.set_xlim(0, 75)
+    ax.grid(axis="y", visible=False)
+    ax.grid(axis="x", visible=True)
+    ax.spines["left"].set_visible(False)
+    ax.set_xlabel(f"Share of {int(s['stints'].iloc[0])} green flag stops in 2025 (%)")
+    ax.legend(loc="lower left", bbox_to_anchor=(0, 1.0), ncol=1, fontsize=8)
+    save_final(fig, "final_pit_backtest.png")
+
+
 if __name__ == "__main__":
-    fig1_degradation()
-    fig2_importance()
-    fig3_depth_curve()
-    fig4_sample_stints()
+    import sys
+    if "--final" in sys.argv:
+        sys.path.insert(0, str(ROOT / "src"))
+        final_results()
+        final_horizon()
+        final_importance()
+        final_pit_backtest()
+    else:
+        fig1_degradation()
+        fig2_importance()
+        fig3_depth_curve()
+        fig4_sample_stints()

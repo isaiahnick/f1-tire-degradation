@@ -1,6 +1,6 @@
 PY ?= python
 
-.PHONY: setup data ingest clean features train test all figures
+.PHONY: setup data ingest clean features train test all figures tune lstm evaluate strategy final app
 
 setup:            ## install the package in editable mode
 	$(PY) -m pip install -e ".[dev]"
@@ -26,3 +26,21 @@ test:
 	$(PY) -m pytest -q
 
 all: data train test
+
+# ---- final stages (after the midpoint) ----
+tune:             ## grid search inside the grouped folds + weather feature test
+	$(PY) -m pitwall tune
+
+lstm:             ## LSTM sweep and 3 seeds, same folds as Setup B (needs torch)
+	$(PY) -m pitwall lstm
+
+evaluate:         ## one-time 2025 test evaluation, saves final models to models/
+	$(PY) -m pitwall test
+
+strategy:         ## pit window recommender backtest on 2025 green flag stops
+	$(PY) -m pitwall strategy
+
+final: tune lstm evaluate strategy
+
+app:              ## launch the dashboard
+	streamlit run app/app.py

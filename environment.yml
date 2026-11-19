@@ -7,4 +7,4 @@ dependencies:
   - pip
   - git
   - pip:
-      - -e .[dev]
+      - -e .[dev,dl,app]

@@ -55,7 +55,9 @@ def feature_lists(cfg: dict, setup: str = "A") -> tuple[list[str], list[str], li
     """(numeric for trees, categorical, extra linear-only interaction columns)."""
     num = list(cfg["features"]["numeric"])
     cat = list(cfg["features"]["categorical"])
-    inter = BASELINE_INTERACTIONS + ["stint_lap_x_track_temp"]
+    inter = list(BASELINE_INTERACTIONS)
+    if "track_temp" in num:
+        inter.append("stint_lap_x_track_temp")
     if setup == "B":
         num += list(cfg["features"]["history"])
         inter += HISTORY_INTERACTIONS

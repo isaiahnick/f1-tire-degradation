@@ -14,6 +14,7 @@ paths:
   processed: data/processed   # model-ready feature table
   figures: reports/figures
   metrics: reports/metrics
+  models: models              # final fitted models for the dashboard (gitignored)
 
 ingest:
   # "archive": TracingInsights GitHub archive (FastF1 output saved per session).
@@ -68,6 +69,10 @@ features:
     - compound
     - circuit
     - team
+  # Final feature set: weather (track_temp, air_temp, humidity) is dropped. At the
+  # midpoint it had negative permutation importance; with tuned models, removing it
+  # lowered CV MAE for 7 of 8 models (see reports/metrics/weather_ablation.csv).
+  drop_weather: true
   # setup B adds what a strategist already knows mid-stint (first laps on the set)
   history: [early_deg_mean, early_deg_slope, laps_ahead]
 

@@ -17,6 +17,35 @@ make all                                 # ingest -> clean -> features -> train 
 Each stage can also be run alone: `python -m pitwall ingest|clean|features|train`.
 All settings live in `configs/default.yaml`.
 
+## Final stages (after the midpoint)
+
+```bash
+pip install -e ".[dl,app]"     # adds torch, streamlit, plotly (or: conda env update -f environment.yml)
+make final                     # tune -> lstm -> evaluate (2025 test, once) -> strategy backtest
+python scripts/make_figures.py --final
+make app                       # Streamlit dashboard at http://localhost:8501
+```
+
+| Stage | Module | What it does | Output |
+|---|---|---|---|
+| tune | `pitwall/tune.py` | Grid search inside the same grouped folds; weather-feature test | `tuning_results.csv`, `tuned_params.json`, `weather_ablation.csv` |
+| lstm | `pitwall/lstm.py` | PyTorch LSTM over the first 5 laps of a stint (Setup B task), size sweep + 3 seeds | `lstm_sweep.csv`, `lstm_summary.json` |
+| evaluate | `pitwall/test.py` | Refits tuned models on 2023-24, scores 2025 once, saves final models to `models/` | `test_results.csv`, `test_error_by_*.csv` |
+| strategy | `pitwall/strategy.py` | Pit window recommender; chooses a monotone-curve option on 2024, then backtests 2025 green flag stops | `strategy_backtest.csv`, `strategy_summary.csv` |
+
+Final feature set: weather (track/air temperature, humidity) is dropped (`features.drop_weather` in the
+config) because removing it lowered CV error for 7 of 8 tuned models.
+
+**Pit window:** at the decision point (5 laps past the stint's reference laps), for every candidate
+pit lap p, cost(p) = predicted loss on the current set through p (Setup B model) + predicted loss on
+the next set after p (Setup A model, the compound actually fitted next) + a compound pace offset.
+Pit lane time is the same for every p, so it does not move the answer. The window is every lap
+within 1 s of the best.
+
+**Dashboard** (`app/`, the lecture's three-file layout): `model.py` loads the saved models and
+tables, `predict.py` turns a selection into curves and a recommendation, `app.py` is the UI. Tabs:
+2025 replay with pit window, plan-a-stint (Setup A what-if), and model results.
+
 ## Data source
 
 The pipeline has two loaders that return the same canonical table
@@ -82,7 +111,9 @@ configs/default.yaml     every tunable setting
 src/pitwall/             package (ingest, clean, features, models, train, plots, data)
 tests/                   unit tests (pytest)
 data/raw, data/processed committed parquet; data/external + data/interim are rebuilt
-reports/metrics          CV results, cleaning funnel, data checks
-reports/figures          report figures
+reports/metrics          CV, tuning, LSTM, 2025 test and backtest results
+reports/figures          midpoint (report/) and final (final/) figures
+app/                     Streamlit dashboard
+models/                  fitted final models (rebuilt by `make final`, not committed)
 notebooks/               EDA and LSTM notebooks (import from pitwall, don't copy code)
 ```

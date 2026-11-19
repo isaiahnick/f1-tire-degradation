@@ -16,3 +16,6 @@ data/interim/
 .DS_Store
 .vscode/
 .idea/
+
+# fitted models are rebuilt by `make final`
+models/
