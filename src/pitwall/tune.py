@@ -1,8 +1,8 @@
 """Stage 5: hyperparameter tuning and the weather-feature test.
 
 Grid search runs inside the same grouped folds as `train` (PredefinedSplit on
-`cv_fold`), so tuning never sees a validation race while fitting. Only 2023 and
-2024 rows are used. Because the same folds pick the settings and score them, the
+`cv_fold`), so tuning never sees a validation race while fitting. Only training
+rows (2022 to 2024) are used. Because the same folds pick the settings and score them, the
 tuned CV numbers are slightly optimistic; the 2025 test set (stage `test`) is
 the unbiased check.
 
@@ -23,7 +23,7 @@ from sklearn.base import clone
 from sklearn.metrics import mean_absolute_error
 from sklearn.model_selection import GridSearchCV, PredefinedSplit
 
-from .models import build_models, feature_lists
+from .models import ENSEMBLE, ENSEMBLE_MEMBERS, build_models, ensemble, feature_lists
 from .train import TARGET, load_train
 
 WEATHER = ["track_temp", "air_temp", "humidity"]
@@ -70,6 +70,21 @@ def cv_mae(df: pd.DataFrame, cfg: dict, setup: str, name: str, params: dict) -> 
     return float(np.mean(tr_mae)), float(np.mean(va_mae))
 
 
+def ensemble_cv(df: pd.DataFrame, cfg: dict, setup: str, best: dict) -> tuple[float, float]:
+    """CV of the equal-weight GB + Ridge average, built from the tuned members."""
+    num, cat, inter = feature_lists(cfg, setup)
+    X, y = df[num + cat + inter], df[TARGET].to_numpy()
+    base = build_models(cfg, setup)
+    members = {n: clone(base[n]).set_params(**best[n]["params"]) for n in ENSEMBLE_MEMBERS}
+    tr_mae, va_mae = [], []
+    for fold in sorted(df["cv_fold"].unique()):
+        tr, va = (df["cv_fold"] != fold).to_numpy(), (df["cv_fold"] == fold).to_numpy()
+        m = ensemble(members).fit(X[tr], y[tr])
+        tr_mae.append(mean_absolute_error(y[tr], m.predict(X[tr])))
+        va_mae.append(mean_absolute_error(y[va], m.predict(X[va])))
+    return float(np.mean(tr_mae)), float(np.mean(va_mae))
+
+
 def run(cfg: dict) -> dict:
     out = cfg["paths"]["metrics"]
     full_cfg, cfg = cfg, final_config(cfg)          # search on the final feature set
@@ -98,6 +113,9 @@ def run(cfg: dict) -> dict:
                                  "train_mae": -res["mean_train_score"][i]}
             print(f"tune[{setup}] {name:18s} best val MAE {-res['mean_test_score'][i]:.4f} "
                   f"{res['params'][i]}  ({time.time() - t0:.0f}s)")
+        tr, va = ensemble_cv(df, cfg, setup, best[setup])
+        best[setup][ENSEMBLE] = {"params": {}, "val_mae": va, "train_mae": tr}
+        print(f"tune[{setup}] {ENSEMBLE:18s} val MAE {va:.4f} (equal weights, no search)")
     pd.DataFrame(rows).to_csv(out / "tuning_results.csv", index=False)
 
     # weather test: the same tuned settings with and without the weather features
@@ -105,6 +123,8 @@ def run(cfg: dict) -> dict:
     for setup in ["A", "B"]:
         df = rows_for(train, setup)
         for name, b in best[setup].items():
+            if name == ENSEMBLE:
+                continue
             _, with_w = cv_mae(df, full_cfg, setup, name, b["params"])
             tr, without_w = cv_mae(df, without_weather(full_cfg), setup, name, b["params"])
             ab.append({"setup": setup, "model": name, "val_mae_with_weather": with_w,

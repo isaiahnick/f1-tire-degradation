@@ -55,6 +55,8 @@ NICE = {
     "gap_ahead_s": "Gap to car ahead", "position": "Position", "compound": "Compound",
     "circuit": "Circuit", "team": "Team", "early_deg_mean": "Early-stint average loss",
     "early_deg_slope": "Early-stint wear trend", "laps_ahead": "Laps past early window",
+    "prac_slope_field": "Practice long-run wear", "dirty_air_share": "Time in dirty air",
+    "window_gap_mean": "Average gap ahead", "pace_vs_field": "Car pace vs field",
 }
 
 
@@ -82,7 +84,7 @@ def fig1_degradation():
     ax.set_xlim(3, 47)
     ax.set_xlabel("Laps on the current tire set")
     ax.set_ylabel("Lap time loss vs. stint start (s)")
-    ax.text(0, 1.02, "Mean with 95% confidence band, 2023 and 2024 races, fuel corrected",
+    ax.text(0, 1.02, "Mean with 95% confidence band, 2022 to 2024 races, fuel corrected",
             transform=ax.transAxes, fontsize=8, color=MUTED)
     save(fig, "fig1_degradation.png")
 
@@ -175,8 +177,9 @@ def fig4_sample_stints():
 # ================================================================ final figures
 FINAL = ROOT / "reports" / "figures" / "final"
 YELLOW, MAGENTA = "#eda100", "#e87ba4"
+ENS = "Ensemble (GB + Ridge)"
 MODEL_COLOR = {"Linear baseline": GREY, "Ridge": ORANGE, "Random forest": BLUE,
-               "Gradient boosting": GREEN, "LSTM": MAGENTA, "Decision tree": YELLOW}
+               "Gradient boosting": GREEN, "LSTM": MAGENTA, "Decision tree": YELLOW, ENS: INK}
 
 
 def save_final(fig, name):
@@ -235,7 +238,7 @@ def final_horizon():
     x = np.arange(len(d))
     fig, ax = plt.subplots(figsize=(6.4, 3.4))
     ends = {}
-    for m in ["Linear baseline", "LSTM", "Gradient boosting", "Random forest", "Ridge"]:
+    for m in ["Linear baseline", "LSTM", "Gradient boosting", "Random forest", "Ridge", ENS]:
         ls = (0, (4, 2)) if m == "Linear baseline" else "-"
         ax.plot(x, d[m], color=MODEL_COLOR[m], linewidth=2.2, linestyle=ls, marker="o", ms=4.5,
                 mec="white", mew=0.8)
@@ -258,13 +261,16 @@ def final_horizon():
 
 
 def final_importance(n_rows=4000):
-    """Permutation importance of the final Setup B gradient boosting model on 2025 laps."""
+    """Permutation importance of the final (best by CV) Setup B model on 2025 laps."""
     import joblib
     from sklearn.inspection import permutation_importance
 
     from pitwall.models import feature_lists
+    import json
     obj = joblib.load(ROOT / "models" / "final_B.joblib")
-    cfg, model = obj["cfg"], obj["models"]["Gradient boosting"]
+    tuned = json.loads((METRICS / "tuned_params.json").read_text())["B"]
+    best = min(tuned, key=lambda m: tuned[m]["cv_val_mae"])
+    cfg, model = obj["cfg"], obj["models"][best]
     num, cat, inter = feature_lists(cfg, "B")
     df = pd.read_parquet(FEATURES)
     te = df[(df["split"] == "test") & df["in_forecast"]].sample(n_rows, random_state=42)
@@ -286,10 +292,24 @@ def final_importance(n_rows=4000):
     save_final(fig, "final_importance.png")
 
 
+PIT_LABELS = {"(one decision at lap 5)": "GB + Ridge ensemble, decide once",
+              "(re-decided every lap)": "Tire model, re-decide every lap",
+              "Learned layer (tire model + race context)": "Learned layer (tire model + race context)",
+              "Imitation only (race context, no tire model)": "Race context only (no tire model)",
+              "Linear baseline": "Linear baseline", "Midpoint (no model)": "Midpoint of segment"}
+
+
+def pit_label(m: str) -> str:
+    for k, v in PIT_LABELS.items():
+        if k in m:
+            return ("LSTM, decide once" if m.startswith("LSTM") else v)
+    return m
+
+
 def final_pit_backtest():
     s = pd.read_csv(METRICS / "strategy_summary.csv")
-    s["label"] = s["method"].str.replace(" (no model)", "", regex=False)
-    fig, ax = plt.subplots(figsize=(6.4, 3.2))
+    s["label"] = s["method"].map(pit_label)
+    fig, ax = plt.subplots(figsize=(6.6, 0.42 * len(s) + 0.9))
     y = np.arange(len(s))[::-1].astype(float)
     h = 0.36
     ax.barh(y + h / 2, s["within_3_laps_pct"], height=h, color=BLUE, zorder=2,
@@ -301,13 +321,36 @@ def final_pit_backtest():
         ax.text((b if pd.notna(b) else 0) + 1, yi - h / 2, f"{b:.0f}%" if pd.notna(b) else "n/a",
                 va="center", fontsize=8.5, color=INK if pd.notna(b) else MUTED)
     ax.set_yticks(y, s["label"])
-    ax.set_xlim(0, 75)
+    ax.axvline(60, color=INK2, linestyle=(0, (2, 2)), linewidth=1, zorder=1)
+    ax.text(60.5, y.max() + 0.55, "goal 60%", fontsize=8, color=INK2)
+    ax.set_xlim(0, 85)
     ax.grid(axis="y", visible=False)
     ax.grid(axis="x", visible=True)
     ax.spines["left"].set_visible(False)
     ax.set_xlabel(f"Share of {int(s['stints'].iloc[0])} green flag stops in 2025 (%)")
     ax.legend(loc="lower left", bbox_to_anchor=(0, 1.0), ncol=1, fontsize=8)
     save_final(fig, "final_pit_backtest.png")
+
+
+def final_update():
+    """Frozen vs updated forecast error by how many laps the pit wall has seen (2025)."""
+    d = pd.read_csv(METRICS / "update_by_decision.csv")
+    d = d[d["data"] == "test_2025"]
+    x = np.arange(len(d))
+    fig, ax = plt.subplots(figsize=(6.0, 3.2))
+    ax.plot(x, d["frozen_mae"], color=GREY, linewidth=2.2, linestyle=(0, (4, 2)), marker="o", ms=4.5,
+            mec="white", mew=0.8)
+    ax.plot(x, d["updated_mae"], color=BLUE, linewidth=2.4, marker="o", ms=5, mec="white", mew=0.8)
+    ax.text(x[-1] + 0.12, d["frozen_mae"].iloc[-1], "Frozen after lap 5", color=INK2, fontsize=8.5,
+            fontweight="bold", va="center")
+    ax.text(x[-1] + 0.12, d["updated_mae"].iloc[-1], "Updated every lap", color=BLUE, fontsize=8.5,
+            fontweight="bold", va="center")
+    ax.set_xticks(x, d["bucket"])
+    ax.set_xlim(-0.2, x[-1] + 1.6)
+    ax.set_ylim(0, max(0.8, d["frozen_mae"].max() + 0.05))
+    ax.set_xlabel("Decision point: laps seen on the current set")
+    ax.set_ylabel("2025 test MAE, all later laps (s)")
+    save_final(fig, "final_update.png")
 
 
 if __name__ == "__main__":
@@ -318,6 +361,7 @@ if __name__ == "__main__":
         final_horizon()
         final_importance()
         final_pit_backtest()
+        final_update()
     else:
         fig1_degradation()
         fig2_importance()

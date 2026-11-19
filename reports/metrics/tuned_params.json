@@ -4,16 +4,16 @@
       "params": {
         "alpha": 1000
       },
-      "cv_val_mae": 0.574,
-      "cv_train_mae": 0.5325
+      "cv_val_mae": 0.5755,
+      "cv_train_mae": 0.5342
     },
     "Decision tree": {
       "params": {
-        "max_depth": 5,
-        "min_samples_leaf": 100
+        "max_depth": 2,
+        "min_samples_leaf": 20
       },
-      "cv_val_mae": 0.6033,
-      "cv_train_mae": 0.5404
+      "cv_val_mae": 0.6126,
+      "cv_train_mae": 0.594
     },
     "Random forest": {
       "params": {
@@ -21,8 +21,8 @@
         "min_samples_leaf": 20,
         "n_estimators": 200
       },
-      "cv_val_mae": 0.5657,
-      "cv_train_mae": 0.3766
+      "cv_val_mae": 0.5662,
+      "cv_train_mae": 0.3758
     },
     "Gradient boosting": {
       "params": {
@@ -31,8 +31,13 @@
         "max_leaf_nodes": 15,
         "min_samples_leaf": 40
       },
-      "cv_val_mae": 0.5557,
-      "cv_train_mae": 0.4069
+      "cv_val_mae": 0.5629,
+      "cv_train_mae": 0.4263
+    },
+    "Ensemble (GB + Ridge)": {
+      "params": {},
+      "cv_val_mae": 0.5596,
+      "cv_train_mae": 0.47
     }
   },
   "B": {
@@ -40,35 +45,40 @@
       "params": {
         "alpha": 1000
       },
-      "cv_val_mae": 0.4627,
-      "cv_train_mae": 0.4303
+      "cv_val_mae": 0.4341,
+      "cv_train_mae": 0.4037
     },
     "Decision tree": {
       "params": {
-        "max_depth": 6,
+        "max_depth": 8,
         "min_samples_leaf": 100
       },
-      "cv_val_mae": 0.4996,
-      "cv_train_mae": 0.4368
+      "cv_val_mae": 0.4879,
+      "cv_train_mae": 0.4066
     },
     "Random forest": {
       "params": {
-        "max_features": 0.33,
+        "max_features": 0.6,
         "min_samples_leaf": 20,
         "n_estimators": 200
       },
-      "cv_val_mae": 0.465,
-      "cv_train_mae": 0.3069
+      "cv_val_mae": 0.4482,
+      "cv_train_mae": 0.2761
     },
     "Gradient boosting": {
       "params": {
         "learning_rate": 0.03,
         "max_iter": 300,
-        "max_leaf_nodes": 15,
-        "min_samples_leaf": 40
+        "max_leaf_nodes": 31,
+        "min_samples_leaf": 100
       },
-      "cv_val_mae": 0.4577,
-      "cv_train_mae": 0.3183
+      "cv_val_mae": 0.4281,
+      "cv_train_mae": 0.273
+    },
+    "Ensemble (GB + Ridge)": {
+      "params": {},
+      "cv_val_mae": 0.4212,
+      "cv_train_mae": 0.3243
     }
   }
 }

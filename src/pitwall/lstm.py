@@ -37,7 +37,9 @@ def seq_features(cfg: dict) -> list[str]:
 
 
 def head_numeric(cfg: dict) -> list[str]:
-    return list(cfg["features"]["numeric"]) + ["laps_ahead"]
+    """Static inputs next to the sequence: conditions + the Setup B history features
+    (so the LSTM sees the same information as the other Setup B models)."""
+    return list(cfg["features"]["numeric"]) + list(cfg["features"]["history"])
 
 
 def windows(df: pd.DataFrame, cfg: dict) -> dict[str, np.ndarray]:
@@ -195,21 +197,30 @@ def run(cfg: dict) -> pd.DataFrame:
     rows = train[train["in_forecast"]].reset_index(drop=True)
 
     sweep, sweep_oof = [], {}
-    for hp in SWEEP:
+    if not cfg.get("lstm", {}).get("run_sweep", True):
+        hp = json.loads((out / "lstm_summary.json").read_text())["best_hp"]
+        f, oof = cross_validate(rows, wins, cfg, seed=cfg["seed"], **hp)
+        print(f"lstm: kept {hp} (sweep skipped), seed {cfg['seed']} val MAE {f['val_mae'].mean():.4f}")
+        sweep_oof[(hp["hidden"], hp["dropout"], hp["lr"])] = (f, oof)
+    for hp in (SWEEP if cfg.get("lstm", {}).get("run_sweep", True) else []):
         t0 = time.time()
         f, oof = cross_validate(rows, wins, cfg, seed=cfg["seed"], **hp)
         sweep.append(f)
         sweep_oof[(hp["hidden"], hp["dropout"], hp["lr"])] = (f, oof)
         print(f"lstm: {hp} val MAE {f['val_mae'].mean():.4f} train MAE {f['train_mae'].mean():.4f} "
               f"({time.time() - t0:.0f}s)")
-    sweep = pd.concat(sweep)
-    sweep.to_csv(out / "lstm_sweep.csv", index=False)
-    best_hp = (sweep.groupby(["hidden", "dropout", "lr"])["val_mae"].mean().idxmin())
-    best_hp = {"hidden": int(best_hp[0]), "dropout": float(best_hp[1]), "lr": float(best_hp[2])}
+    if sweep:
+        sweep = pd.concat(sweep)
+        sweep.to_csv(out / "lstm_sweep.csv", index=False)
+        best_hp = (sweep.groupby(["hidden", "dropout", "lr"])["val_mae"].mean().idxmin())
+        best_hp = {"hidden": int(best_hp[0]), "dropout": float(best_hp[1]), "lr": float(best_hp[2])}
+    else:
+        best_hp = hp
 
     first = sweep_oof[(best_hp["hidden"], best_hp["dropout"], best_hp["lr"])]  # seed 42 already run
     seeds, oofs = [first[0]], [first[1]]
-    for seed in [cfg["seed"] + 1, cfg["seed"] + 2]:
+    n_seeds = cfg.get("lstm", {}).get("cv_seeds", 3)
+    for seed in [cfg["seed"] + i for i in range(1, n_seeds)]:
         f, oof = cross_validate(rows, wins, cfg, seed=seed, **best_hp)
         seeds.append(f)
         oofs.append(oof)
@@ -224,7 +235,8 @@ def run(cfg: dict) -> pd.DataFrame:
     per_seed = seeds.groupby("seed")[["train_mae", "val_mae", "val_rmse", "val_r2"]].mean()
     summary = {"best_hp": best_hp, "seeds": per_seed.round(4).to_dict("index"),
                "val_mae_mean": round(per_seed["val_mae"].mean(), 4),
-               "val_mae_sd_across_seeds": round(per_seed["val_mae"].std(), 4),
+               "val_mae_sd_across_seeds": round(per_seed["val_mae"].std(), 4) if len(per_seed) > 1 else None,
+               "cv_seeds": int(len(per_seed)),
                "train_mae_mean": round(per_seed["train_mae"].mean(), 4),
                "val_r2_mean": round(per_seed["val_r2"].mean(), 4),
                "median_best_epoch": float(seeds["best_epoch"].median())}

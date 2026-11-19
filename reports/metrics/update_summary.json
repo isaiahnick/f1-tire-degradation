@@ -1,0 +1,13 @@
+{
+  "model": "Ensemble (GB + Ridge)",
+  "k": 3,
+  "shrink": 0.0,
+  "step": 2,
+  "cv_frozen_mae_after_lap5": 0.4897,
+  "cv_updated_mae_after_lap5": 0.3887,
+  "test_frozen_mae_after_lap5": 0.4997,
+  "test_updated_mae_after_lap5": 0.3787,
+  "test_frozen_mae_all_decisions": 0.4833,
+  "test_updated_mae_all_decisions": 0.385,
+  "test_improvement_after_lap5_pct": 24.2
+}

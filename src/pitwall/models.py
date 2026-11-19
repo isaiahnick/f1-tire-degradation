@@ -14,7 +14,7 @@ import numpy as np
 from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn.compose import ColumnTransformer
 from sklearn.dummy import DummyRegressor
-from sklearn.ensemble import HistGradientBoostingRegressor, RandomForestRegressor
+from sklearn.ensemble import HistGradientBoostingRegressor, RandomForestRegressor, VotingRegressor
 from sklearn.linear_model import LinearRegression, Ridge
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
@@ -58,6 +58,8 @@ def feature_lists(cfg: dict, setup: str = "A") -> tuple[list[str], list[str], li
     inter = list(BASELINE_INTERACTIONS)
     if "track_temp" in num:
         inter.append("stint_lap_x_track_temp")
+    if "prac_slope_field" in num:
+        inter.append("stint_lap_x_prac")
     if setup == "B":
         num += list(cfg["features"]["history"])
         inter += HISTORY_INTERACTIONS
@@ -103,6 +105,17 @@ def build_models(cfg: dict, setup: str = "A") -> dict[str, Pipeline]:
     return models
 
 
+ENSEMBLE = "Ensemble (GB + Ridge)"
+ENSEMBLE_MEMBERS = ["Gradient boosting", "Ridge"]
+
+
+def ensemble(models: dict) -> VotingRegressor:
+    """Equal-weight average of the tuned boosting model and Ridge. They make
+    different kinds of errors (piecewise trees vs a smooth linear fit), so the
+    average has lower variance than either one. No extra tuning: weights are 1:1."""
+    return VotingRegressor([(n, models[n]) for n in ENSEMBLE_MEMBERS])
+
+
 MODEL_SETTINGS = {
     "Mean (dummy)": "predicts the training mean",
     "Linear baseline": "loss = wear rate x stint lap, one rate per compound",
@@ -112,4 +125,5 @@ MODEL_SETTINGS = {
     "Decision tree": "max_depth=8, min_samples_leaf=50",
     "Random forest": "300 trees, min_samples_leaf=20, max_features=0.33",
     "Gradient boosting": "HistGB, lr=0.05, 400 iters, 31 leaves",
+    ENSEMBLE: "average of tuned gradient boosting and Ridge",
 }

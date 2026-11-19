@@ -4,7 +4,7 @@ Use these instead of re-deriving splits, so every model is trained and scored on
 the same rows and the same CV folds.
 
     from pitwall.data import load_features, stint_sequences
-    train = load_features("train")              # 2023-2024, has cv_fold 0..4
+    train = load_features("train")              # 2022-2024, has cv_fold 0..4
     seqs = stint_sequences(train)               # one dict per stint for the LSTM
 """
 from __future__ import annotations

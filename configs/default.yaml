@@ -3,8 +3,8 @@
 
 seed: 42
 
-seasons: [2023, 2024, 2025]
-train_seasons: [2023, 2024]   # model fitting + grouped CV
+seasons: [2022, 2023, 2024, 2025]
+train_seasons: [2022, 2023, 2024]   # model fitting + grouped CV (2022 added after the midpoint)
 test_seasons: [2025]          # locked holdout, only touched for final evaluation
 
 paths:
@@ -24,6 +24,7 @@ ingest:
     url: https://github.com/TracingInsights/{year}
     # pinned commits so every teammate ingests the exact same files
     commits:
+      2022: df396d091c4a40a3a6b733631da3497f8c91d89f
       2023: 737c84d3ae14b9883a671ca248d015b69cf1cb58
       2024: d1543a71370d9b617b627319f8ad80b2f85dfd5e
       2025: dfb3ea3f50b69857fe8e40cabe5e899743c59f6a
@@ -65,6 +66,7 @@ features:
     - race_progress
     - gap_ahead_s
     - position
+    - prac_slope_field          # practice long-run wear (s/lap) for this weekend and compound
   categorical:
     - compound
     - circuit
@@ -74,7 +76,42 @@ features:
   # lowered CV MAE for 7 of 8 models (see reports/metrics/weather_ablation.csv).
   drop_weather: true
   # setup B adds what a strategist already knows mid-stint (first laps on the set)
-  history: [early_deg_mean, early_deg_slope, laps_ahead]
+  history: [early_deg_mean, early_deg_slope, laps_ahead,
+            dirty_air_share,      # share of window laps within 1 s of the car ahead
+            window_gap_mean,      # mean gap ahead over the window (capped at 10 s)
+            pace_vs_field]        # reference pace minus the field median on the same laps
+  dirty_air_s: 1.0
+
+practice:
+  # long runs from FP1-FP3: one set, enough green laps to fit a wear slope
+  min_laps: 6
+  min_span_laps: 5
+  keep_band: [0.97, 1.04]     # laps within this band of the run's median (drops push / cool-down laps)
+  fuel_s_per_lap: 0.06        # fuel burn makes a run ~0.06 s/lap faster; added back to the slope
+  slope_range: [-0.3, 0.6]    # drop implausible slopes
 
 cv:
   n_splits: 5                 # GroupKFold by race
+
+lstm:
+  retrain: true
+  run_sweep: true             # 5 network sizes, same grouped folds as Setup B
+  cv_seeds: 3                 # the chosen size is re-run with 3 seeds (stability check)
+
+update:
+  # online error correction of the Setup B forecast (stage `update`)
+  step: 2                     # score a decision every 2nd observed lap
+  k_grid: [3, 5, 8]           # how many recent errors to average
+  shrink_grid: [0, 2, 5]      # shrink the correction when few errors have been seen
+
+strategy:
+  window_s: 1.0               # pit window = laps within this many seconds of the best
+  # decision options, chosen on a 2024 backtest with models fit on earlier seasons
+  options_grid:
+    # The full grid was compared in reports/experiments (fit on 2023, backtest 2024):
+    # re-deciding every lap gave the best within-3-laps rate. The pipeline re-checks
+    # that choice against the single decision on 2024.
+    monotone: [true]          # loss curves never improve as a set ages
+    smooth: [false]           # straight-line fit of each curve (+2.5 pts single-decision, not combined)
+    rolling: [false, true]    # re-decide after every lap instead of once
+    update: [false]           # rolling: online error correction (no gain for the pit call in experiments)

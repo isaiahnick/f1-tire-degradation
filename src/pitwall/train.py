@@ -1,6 +1,6 @@
 """Stage 4: grouped cross-validation of the baseline and classical models.
 
-Only `split == "train"` rows (2023 and 2024) are read. Folds come from the
+Only `split == "train"` rows (2022 to 2024) are read. Folds come from the
 `cv_fold` column written by the features stage, so every model (including the
 LSTM later) is scored on exactly the same held-out races. The 2025 test season
 is not touched here.

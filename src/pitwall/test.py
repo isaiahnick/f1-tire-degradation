@@ -1,6 +1,6 @@
 """Stage 7: the one-time evaluation on the locked 2025 season.
 
-Every model is refit on all 2023 and 2024 rows with its tuned settings
+Every model is refit on all training rows (2022 to 2024) with its tuned settings
 (tuned_params.json) and the final feature set, then scored once on 2025. Nothing
 here feeds back into model choices; that was settled with cross-validation.
 
@@ -22,7 +22,7 @@ from sklearn.base import clone
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 from . import lstm
-from .models import build_models, feature_lists
+from .models import ENSEMBLE, build_models, ensemble, feature_lists
 from .tune import final_config
 
 TARGET = "deg_s"
@@ -32,7 +32,10 @@ def tuned_models(cfg: dict, setup: str) -> dict:
     tuned = json.loads((cfg["paths"]["metrics"] / "tuned_params.json").read_text())[setup]
     models = build_models(cfg, setup)
     for name, t in tuned.items():
-        models[name] = clone(models[name]).set_params(**{f"model__{k}": v for k, v in t["params"].items()})
+        if name != ENSEMBLE:
+            models[name] = clone(models[name]).set_params(**{f"model__{k}": v for k, v in t["params"].items()})
+    if ENSEMBLE in tuned:
+        models[ENSEMBLE] = ensemble(models)
     return models
 
 
@@ -64,7 +67,7 @@ def run(cfg: dict) -> pd.DataFrame:
             rows.append({"setup": setup, "model": name, "n_test": len(te),
                          "train_mae": mean_absolute_error(tr[TARGET], m.predict(X_tr)),
                          **{f"test_{k}": v for k, v in metrics(te[TARGET], preds[name]).items()}})
-        if setup == "B":
+        if setup == "B" and cfg.get("lstm", {}).get("retrain", True):
             wins = lstm.windows(pd.concat([train_all, test_all]), fcfg)
             hp = json.loads((out / "lstm_summary.json").read_text())["best_hp"]
             net_preds = []
@@ -95,7 +98,8 @@ def run(cfg: dict) -> pd.DataFrame:
     joblib.dump({"cfg": fcfg, "models": saved["B"]}, model_dir / "final_B.joblib")
 
     pb = pd.read_parquet(out / "test_predictions_B.parquet")
-    names = ["Linear baseline", "Ridge", "Random forest", "Gradient boosting", "LSTM"]
+    names = [n for n in ["Linear baseline", "Ridge", "Random forest", "Gradient boosting", ENSEMBLE, "LSTM"]
+             if n in pb]
     g = pb.groupby("compound")
     pd.DataFrame({n: g[[TARGET, n]].apply(lambda x, n=n: mean_absolute_error(x[TARGET], x[n]))
                   for n in names}).assign(laps=g.size()).to_csv(out / "test_error_by_compound.csv")

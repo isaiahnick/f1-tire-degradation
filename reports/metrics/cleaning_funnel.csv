@@ -1,13 +1,13 @@
 step,laps_remaining,races,laps_removed
-raw laps,77720,70,0
-remove wet races,68862,62,8858
-excluded events,66200,60,2662
-missing lap time / tire info,65644,60,556
-non-dry compound,65644,60,0
-lap 1,64491,60,1153
-pit in / out laps,60444,60,4047
-safety car / VSC / red flag,58004,60,2440
-rainfall during lap,57881,60,123
-inaccurate / deleted / generated,56997,60,884
-slower than 107% of fastest,56292,60,705
-within-stint outliers,54599,60,1693
+raw laps,101297,92,0
+remove wet races,88676,80,12621
+excluded events,86014,78,2662
+missing lap time / tire info,85032,78,982
+non-dry compound,85032,78,0
+lap 1,83527,78,1505
+pit in / out laps,78184,78,5343
+safety car / VSC / red flag,74289,78,3895
+rainfall during lap,73855,78,434
+inaccurate / deleted / generated,72759,78,1096
+slower than 107% of fastest,71831,78,928
+within-stint outliers,69615,78,2216

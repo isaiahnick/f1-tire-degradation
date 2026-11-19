@@ -12,12 +12,12 @@ import plotly.graph_objects as go  # noqa: E402
 import streamlit as st  # noqa: E402
 
 from model import load_all  # noqa: E402
-from predict import plan_curves, stint_recommendation  # noqa: E402
+from predict import decision_laps, plan_curves, stint_recommendation, typical_team_call  # noqa: E402
 
 st.set_page_config(page_title="PitWall", layout="wide")
 BLUE, ORANGE, GREEN, GREY, INK = "#2a78d6", "#eb6834", "#1baf7a", "#9a988f", "#1f1f1f"
 COMP_COLOR = {"SOFT": BLUE, "MEDIUM": ORANGE, "HARD": GREEN}
-DEMO = "2025_02_NOR_1"     # default view: Norris, Chinese GP, first stint
+DEMO = "2025_09_VER_2"     # default view: Verstappen, Spanish GP, second stint (softs)
 LAYOUT = dict(template="simple_white", height=420, margin=dict(l=10, r=10, t=50, b=10),
               font=dict(family="Arial", size=13),
               legend=dict(orientation="h", yanchor="top", y=-0.18, x=0),
@@ -28,7 +28,7 @@ feat, stints = ctx["feat"], ctx["stints"]
 
 st.title("PitWall")
 st.caption("Predicting Formula 1 tire degradation to recommend pit stop timing. "
-           "EM 538 Team 9. Models trained on 2023 and 2024; everything below is the unseen 2025 season.")
+           "EM 538 Team 9. Models trained on 2022 to 2024; everything below is the unseen 2025 season.")
 
 tab1, tab2, tab3 = st.tabs(["Pit window (2025 replay)", "Plan a stint", "Model results"])
 
@@ -45,7 +45,8 @@ with tab1:
     drivers = sorted(usable[usable["race_id"] == race]["driver"].unique())
     driver = c2.selectbox("Driver", drivers, index=drivers.index(demo_driver) if demo_driver in drivers else 0)
     opts = usable[(usable["race_id"] == race) & (usable["driver"] == driver)].sort_values("stint")
-    sid = c3.selectbox("Stint", opts["stint_id"], format_func=lambda s: (
+    sids = list(opts["stint_id"])
+    sid = c3.selectbox("Stint", sids, index=sids.index(DEMO) if DEMO in sids else 0, format_func=lambda s: (
         f"Stint {int(opts.set_index('stint_id').loc[s, 'stint'])}: "
         f"{opts.set_index('stint_id').loc[s, 'compound'].title()}"))
     tB = ctx["tuned"]["B"]
@@ -60,32 +61,43 @@ with tab1:
                    index=["SOFT", "MEDIUM", "HARD"].index(default_next),
                    format_func=str.title)
 
+    dl = decision_laps(ctx, sid)
+    dec = st.select_slider("Decision lap: slide right to re-decide with more laps seen on this set",
+                           options=dl, value=dl[0]) if len(dl) > 1 else dl[0]
+
     t0 = time.perf_counter()
-    r = stint_recommendation(ctx, sid, model_name, nxt)
+    r = stint_recommendation(ctx, sid, model_name, nxt, dec)
     infer_ms = 1000 * (time.perf_counter() - t0)
+    team_call = typical_team_call(ctx, sid, nxt)
     win = r["table"][r["table"]["in_window"]]["pit_lap"]
     pl = ctx["pit_loss"]
     loss = pl[pl["circuit"] == r["info"]["circuit"]]["pit_loss_s"]
-    m1, m2, m3, m4 = st.columns(4)
+    m1, m2, m3, m4, m5 = st.columns(5)
     m1.metric("Decision point", f"Lap {int(r['state']['lap_number'])}")
     m2.metric("Recommended pit lap", f"Lap {r['best']}")
     m3.metric("Pit window (within 1 s)", f"Laps {win.min()} to {win.max()}")
-    m4.metric("Team actually pitted", f"Lap {r['actual_pit']}" if r["actual_pit"] else "No stop",
+    m4.metric("Typical team call", f"Lap {team_call}" if team_call else "n/a",
+              help="Learned strategy layer: where teams usually stop in this situation "
+                   "(tire model window + gap behind, position, stint, laps left).")
+    m5.metric("Team actually pitted", f"Lap {r['actual_pit']}" if r["actual_pit"] else "No stop",
               delta=(("same lap as ours" if r["best"] == r["actual_pit"] else
                       f"{abs(r['best'] - r['actual_pit'])} laps {'earlier' if r['actual_pit'] < r['best'] else 'later'} than ours")
                      if r["actual_pit"] else None),
               delta_color="off")
 
     st_ = r["state"]
+    upd = (f" It has now seen {r['n_seen']} more laps, and the forecast has been off by "
+           f"{r['bias']:+.2f} s on average, so every future lap is shifted by that much."
+           if r["n_seen"] else "")
     st.info(
         f"**Why this lap:** over its first 5 laps this set lost {st_['early_deg_mean']:.2f} s on average, "
-        f"trending {st_['early_deg_slope']:+.2f} s per lap, with {int(st_['laps_remaining'])} laps left in the race. "
-        f"The model projects that forward, compares it with a new set of {nxt.title()}s, and picks the lap with "
-        f"the least total time lost. Inference took {infer_ms:.0f} ms.")
+        f"trending {st_['early_deg_slope']:+.2f} s per lap, with {int(st_['laps_remaining'])} laps left in the race."
+        f"{upd} The model projects that forward, compares it with a new set of {nxt.title()}s, and picks the lap "
+        f"with the least total time lost. Inference took {infer_ms:.0f} ms.")
 
     obs = r["laps_obs"]
-    seen = obs.iloc[:5]
-    later = obs.iloc[5:]
+    seen = obs.iloc[:r["d"]]
+    later = obs.iloc[r["d"]:]
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=later["lap_number"], y=later["deg_s"], mode="markers", name="What actually happened",
                              marker=dict(color=GREY, size=7, symbol="circle-open")))
@@ -144,7 +156,7 @@ with tab2:
     fig3.update_layout(**LAYOUT, title=f"Expected lap time loss on a new set ({plan_model}, Setup A)",
                        xaxis_title="Laps on the set", yaxis_title="seconds")
     st.plotly_chart(fig3, use_container_width=True)
-    st.caption("Conditions alone explain only about 20% of the variance on 2025 (R² 0.2), "
+    st.caption("Conditions alone explain only a small share of the variance on 2025 (see Model results), "
                "which is why the pit window tab waits until it has seen the first laps on the set. "
                "Tree models can treat two compounds the same at a given track when the data "
                "doesn't separate them; the linear models always keep a separate wear rate per compound.")
@@ -152,6 +164,11 @@ with tab2:
 # ------------------------------------------------------------------ tab 3
 with tab3:
     tr = ctx["test_results"]
+    us = ctx["update_summary"]
+    ub = ctx["update_by_decision"]
+    ub = ub[ub["data"] == "test_2025"][["bucket", "frozen_mae", "updated_mae", "laps"]]
+    ub.columns = ["Decision point (laps seen on the set)", "Frozen after lap 5 (MAE, s)",
+                  "Updated every lap (MAE, s)", "Laps scored"]
     for setup, label in [("B", "Setup B: conditions + first 5 laps of the stint"),
                          ("A", "Setup A: conditions only")]:
         d = tr[(tr["setup"] == setup) & ~tr["model"].str.startswith("LSTM (")].copy()
@@ -164,9 +181,16 @@ with tab3:
         d.columns = ["Model", "Train MAE (s)", "2025 test MAE (s)", "RMSE (s)", "R²", "vs baseline (%)"]
         st.subheader(label)
         st.dataframe(d.sort_values("2025 test MAE (s)").round(3), hide_index=True, use_container_width=True)
+    st.subheader("Updating the forecast as the stint goes on (2025)")
+    st.caption(f"{us['model']}, corrected by the mean of its last {us['k']} errors on laps already seen. "
+               f"After lap 5, 2025 MAE {us['test_frozen_mae_after_lap5']:.3f} s frozen vs "
+               f"{us['test_updated_mae_after_lap5']:.3f} s updated ({us['test_improvement_after_lap5_pct']:.0f}% lower).")
+    st.dataframe(ub.round(3), hide_index=True, use_container_width=True)
     st.subheader("Pit window backtest: 2025 green flag stops")
     s = ctx["strategy_summary"].rename(columns={
         "method": "Method", "stints": "Stops", "within_3_laps_pct": "Within 3 laps (%)",
         "within_5_laps_pct": "Within 5 laps (%)", "mean_abs_error_laps": "Mean error (laps)",
-        "median_error_laps": "Median signed error (laps)"})
+        "median_error_laps": "Median signed error (laps)", "actual_in_window_pct": "Actual stop in window (%)",
+        "median_window_laps": "Window width (laps)"})
+    s = s.drop(columns=[c for c in ["monotone", "smooth", "rolling", "update"] if c in s])
     st.dataframe(s.round(1), hide_index=True, use_container_width=True)

@@ -1,7 +1,7 @@
 {
-  "rows": 45642,
-  "stints": 2707,
-  "races": 60,
+  "rows": 57813,
+  "stints": 3589,
+  "races": 78,
   "by_split": {
     "test": {
       "rows": 15711,
@@ -9,38 +9,38 @@
       "stints": 868
     },
     "train": {
-      "rows": 29931,
-      "races": 40,
-      "stints": 1839
+      "rows": 42102,
+      "races": 58,
+      "stints": 2721
     }
   },
   "rows_per_fold": {
-    "0": 6017,
-    "1": 6007,
-    "2": 5999,
-    "3": 5895,
-    "4": 6013
+    "0": 8166,
+    "1": 8159,
+    "2": 8595,
+    "3": 8556,
+    "4": 8626
   },
-  "n_numeric": 12,
+  "n_numeric": 13,
   "n_categorical": 3,
-  "n_interactions": 5,
+  "n_interactions": 6,
   "target_train": {
-    "count": 29931.0,
-    "mean": 0.572,
-    "std": 0.819,
-    "min": -3.13,
-    "25%": 0.018,
-    "50%": 0.525,
-    "75%": 1.087,
-    "max": 4.63
+    "count": 42102.0,
+    "mean": 0.566,
+    "std": 0.84,
+    "min": -3.849,
+    "25%": 0.024,
+    "50%": 0.524,
+    "75%": 1.085,
+    "max": 4.644
   },
   "forecast_rows_by_split": {
     "test": 11430,
-    "train": 20899
+    "train": 28754
   },
   "forecast_stints_by_split": {
     "test": 808,
-    "train": 1661
+    "train": 2442
   },
   "missing_after_features": 0
 }

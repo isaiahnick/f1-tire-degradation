@@ -1,32 +1,33 @@
 {
   "best_hp": {
-    "hidden": 128,
-    "dropout": 0.4,
-    "lr": 0.0003
+    "hidden": 32,
+    "dropout": 0.2,
+    "lr": 0.001
   },
   "seeds": {
     "42": {
-      "train_mae": 0.3813,
-      "val_mae": 0.4513,
-      "val_rmse": 0.5932,
-      "val_r2": 0.4912
+      "train_mae": 0.3631,
+      "val_mae": 0.4187,
+      "val_rmse": 0.5551,
+      "val_r2": 0.5754
     },
     "43": {
-      "train_mae": 0.3946,
-      "val_mae": 0.4655,
-      "val_rmse": 0.6082,
-      "val_r2": 0.4627
+      "train_mae": 0.365,
+      "val_mae": 0.4331,
+      "val_rmse": 0.5724,
+      "val_r2": 0.5522
     },
     "44": {
-      "train_mae": 0.3848,
-      "val_mae": 0.4601,
-      "val_rmse": 0.6034,
-      "val_r2": 0.4733
+      "train_mae": 0.3669,
+      "val_mae": 0.4341,
+      "val_rmse": 0.5744,
+      "val_r2": 0.5457
     }
   },
-  "val_mae_mean": 0.459,
-  "val_mae_sd_across_seeds": 0.0072,
-  "train_mae_mean": 0.3869,
-  "val_r2_mean": 0.4758,
-  "median_best_epoch": 8.0
+  "val_mae_mean": 0.4286,
+  "val_mae_sd_across_seeds": 0.0086,
+  "cv_seeds": 3,
+  "train_mae_mean": 0.365,
+  "val_r2_mean": 0.5578,
+  "median_best_epoch": 3.0
 }

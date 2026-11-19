@@ -33,7 +33,8 @@ def test_fuel_correction_removes_linear_fuel_effect():
 def _stint(n=12, slope=0.1):
     lap = np.arange(2, 2 + n)
     return pd.DataFrame({"stint_id": "s1", "lap_number": lap, "stint_lap": lap - 1,
-                         "lap_time_fc_s": 80 + slope * (lap - 1)})
+                         "lap_time_fc_s": 80 + slope * (lap - 1),
+                         "gap_ahead_s": np.where(lap % 2 == 0, 0.5, 3.0)})
 
 
 def test_target_excludes_reference_laps_and_is_relative():
@@ -55,6 +56,9 @@ def test_history_window_does_not_overlap_forecast_rows():
     assert fc["clean_idx"].min() == 8               # 3 reference + 5 window laps
     assert (fc["laps_ahead"] >= 1).all()
     assert h["early_deg_slope"].iloc[0] == pytest.approx(0.1)
+    # dirty air is measured on the 5 window laps only
+    win_laps = t[(t["clean_idx"] >= 3) & (t["clean_idx"] < 8)]["lap_number"]
+    assert h["dirty_air_share"].iloc[0] == pytest.approx((win_laps % 2 == 0).mean())
 
 
 def test_splits_group_by_race_and_lock_test_season():
@@ -84,7 +88,9 @@ def _state():
                       "stint": 1.0, "fresh_tyre": 1, "laps_remaining": 40, "race_progress": 0.2,
                       "gap_ahead_s": 2.0, "position": 5.0, "track_temp": 40.0, "air_temp": 25.0,
                       "humidity": 50.0, "compound": "MEDIUM", "circuit": "X", "team": "Y",
-                      "early_deg_mean": 0.3, "early_deg_slope": 0.05, "stint_id": "s1", "total_laps": 50})
+                      "early_deg_mean": 0.3, "early_deg_slope": 0.05, "stint_id": "s1", "total_laps": 50,
+                      "laps_ahead": 0.0, "deg_s": 0.6, "prac_slope_field": 0.1, "dirty_air_share": 0.2,
+                      "window_gap_mean": 2.5, "pace_vs_field": 0.1})
 
 
 def test_recommend_matches_brute_force():
@@ -111,3 +117,22 @@ def test_old_tire_rows_only_use_decision_state():
     assert list(rows["laps_ahead"]) == [1, 2, 3]
     assert (rows["gap_ahead_s"] == 2.0).all()          # future gap = gap known now
     assert list(rows["laps_remaining"]) == [39, 38, 37]
+
+
+def test_online_correction_only_uses_laps_already_seen():
+    from pitwall.update import recent_bias
+    r = np.array([np.nan] * 5 + [0.4, 0.2, 0.6, -5.0])     # window laps have no residual
+    assert recent_bias(r[:5], k=3, shrink=0) == 0.0          # nothing seen yet -> no correction
+    assert recent_bias(r[:8], k=3, shrink=0) == pytest.approx(0.4)   # the -5.0 lap is in the future
+    assert recent_bias(r[:8], k=3, shrink=3) == pytest.approx(0.2)   # shrunk: 0.4 * 3 / 6
+
+
+def test_practice_wear_recovers_a_known_slope():
+    cfg = load_config()
+    life = np.arange(1, 13)
+    prac = pd.DataFrame({"year": 2024, "event_name": "X", "session": "Practice 2", "driver": "AAA",
+                         "stint": 2, "compound": "MEDIUM", "tyre_life": life,
+                         "lap_time_s": 90 + 0.1 * life - 0.06 * life,       # wear 0.1, fuel -0.06 s/lap
+                         "pit_in_s": np.nan, "pit_out_s": np.nan, "track_status": "1", "deleted": False})
+    w = features.practice_wear(prac, cfg)
+    assert w["prac_slope_field"].iloc[0] == pytest.approx(0.1)

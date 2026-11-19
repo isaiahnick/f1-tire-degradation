@@ -8,7 +8,7 @@ import pandas as pd
 import streamlit as st
 
 from pitwall.config import load_config
-from pitwall.strategy import stint_table
+from pitwall.strategy import gap_behind, practice_lookup, stint_table
 from pitwall.ingest import load_raw
 
 
@@ -19,7 +19,9 @@ def load_all():
     A = joblib.load(cfg["paths"]["models"] / "final_A.joblib")
     B = joblib.load(cfg["paths"]["models"] / "final_B.joblib")
     feat = pd.read_parquet(cfg["paths"]["processed"] / "features.parquet")
-    stints = stint_table(load_raw(cfg, cfg["test_seasons"]))
+    raw = load_raw(cfg, cfg["test_seasons"])
+    stints = stint_table(raw)
+    layer_path = cfg["paths"]["models"] / "strategy_layer.joblib"
     tuned = json.loads((m / "tuned_params.json").read_text())
     lstm_fn = None
     try:
@@ -30,6 +32,11 @@ def load_all():
     return {
         "cfg": cfg, "fcfg": A["cfg"], "A": A["models"], "B": B["models"], "feat": feat,
         "stints": stints, "tuned": tuned, "lstm_fn": lstm_fn,
+        "options": json.loads((m / "strategy_options.json").read_text()),
+        "prac": practice_lookup(cfg), "gaps": gap_behind(raw),
+        "layer": joblib.load(layer_path) if layer_path.exists() else None,
+        "update_by_decision": pd.read_csv(m / "update_by_decision.csv"),
+        "update_summary": json.loads((m / "update_summary.json").read_text()),
         "pit_loss": pd.read_csv(m / "pit_loss_by_circuit.csv"),
         "offsets": pd.read_csv(m / "compound_offsets.csv"),
         "test_results": pd.read_csv(m / "test_results.csv"),

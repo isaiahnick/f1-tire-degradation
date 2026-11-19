@@ -1,5 +1,7 @@
-method,stints,within_3_laps_pct,within_5_laps_pct,mean_abs_error_laps,median_error_laps,actual_in_window_pct,median_window_laps,median_actual_extra_s,monotone
-Gradient boosting,404,21.03960396039604,32.42574257425743,10.339108910891088,0.5,33.415841584158414,10.0,2.1560015024945915,True
-LSTM,404,22.524752475247524,38.11881188118812,9.049504950495049,-2.0,37.62376237623762,10.0,1.8369025201211535,True
-Linear baseline,404,37.12871287128713,52.97029702970298,6.1138613861386135,-2.0,55.693069306930695,12.0,0.7427132194570287,True
-Midpoint (no model),404,24.504950495049506,40.5940594059406,7.492574257425742,6.0,,,,True
+method,stints,within_3_laps_pct,within_5_laps_pct,mean_abs_error_laps,median_error_laps,actual_in_window_pct,median_window_laps,monotone,smooth,rolling,update
+Ensemble (GB + Ridge) (one decision at lap 5),404,25.247524752475247,38.366336633663366,8.648514851485148,1.0,37.62376237623762,10.0,True,False,False,False
+LSTM (one decision at lap 5),404,25.99009900990099,38.366336633663366,8.814356435643564,1.0,35.64356435643564,10.0,True,False,False,False
+Linear baseline,404,39.35643564356436,56.683168316831676,5.752475247524752,-1.0,61.13861386138614,13.0,True,False,False,False
+Learned layer (tire model + race context),404,54.95049504950495,70.29702970297029,4.361386138613861,-0.5,,,True,False,False,False
+"Imitation only (race context, no tire model)",404,55.693069306930695,71.53465346534654,4.336633663366337,-1.0,,,True,False,False,False
+Midpoint (no model),404,24.504950495049506,40.5940594059406,7.492574257425742,6.0,,,True,False,False,False

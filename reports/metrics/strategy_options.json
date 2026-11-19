@@ -1,0 +1,8 @@
+{
+  "monotone": true,
+  "smooth": false,
+  "rolling": false,
+  "update": false,
+  "update_k": 3,
+  "update_shrink": 0.0
+}
