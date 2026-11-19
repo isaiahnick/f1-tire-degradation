@@ -16,10 +16,13 @@ def best_setup(ctx, setup: str) -> str:
 
 
 def decision_laps(ctx, stint_id: str) -> list[int]:
-    """Laps the pit wall can decide on: from the end of the 5-lap window to the last clean lap."""
+    """Laps the pit wall can decide on: from the end of the 5-lap window to the last clean lap.
+    The forecast needs at least one lap left to predict, so the last two laps of a race are out."""
     g = ctx["feat"][ctx["feat"]["stint_id"] == stint_id].sort_values("lap_number")
+    info = ctx["stints"][ctx["stints"]["stint_id"] == stint_id].iloc[0]
+    end = int(info["next_last_lap"]) if pd.notna(info["next_last_lap"]) else int(info["total_laps"])
     H = ctx["cfg"]["target"]["history_laps"]
-    return [int(x) for x in g["lap_number"].iloc[H - 1:]]
+    return [int(x) for x in g["lap_number"].iloc[H - 1:] if x <= end - 2]
 
 
 def _setup(ctx, stint_id: str, next_compound: str):
@@ -123,3 +126,65 @@ def plan_curves(ctx, circuit: str, n_laps: int, team: str, model_name: str) -> p
         out.append(pd.DataFrame({"compound": comp, "stint_lap": rows["stint_lap"],
                                  "loss": model.predict(rows[na + ca + ia])}))
     return pd.concat(out)
+
+
+def snapshot(ctx, stint_id: str, model_name: str, next_compound: str, lap: int) -> dict:
+    """Everything the pit wall view needs for one car at one lap, as plain values.
+
+    Wraps stint_recommendation and adds the things a strategist reads off it: where
+    the window is relative to now, how much the tires are losing, what waiting costs,
+    and (for the replay) how the forecast compared with what happened next."""
+    import time
+
+    t0 = time.perf_counter()
+    r = stint_recommendation(ctx, stint_id, model_name, next_compound, lap)
+    ms = 1000 * (time.perf_counter() - t0)
+    info, state, tbl = r["info"], r["state"], r["table"]
+    obs = r["laps_obs"]
+    seen, later = obs.iloc[:r["d"]], obs.iloc[r["d"]:]
+    now, best = int(state["lap_number"]), int(r["best"])
+    win = tbl.loc[tbl["in_window"], "pit_lap"]
+    win_lo, win_hi = int(win.min()), int(win.max())
+    old, new = r["old_curve"], r["new_curve"]
+    has_next = pd.notna(info["next_last_lap"])
+
+    wear_now = float(seen["deg_s"].tail(3).mean())
+    at_best = old.loc[old["lap"] == best, "loss"]
+    wear_at_best = float(at_best.iloc[0]) if len(at_best) else wear_now
+    fresh = float(new["loss"].iloc[0]) if len(new) else None
+
+    # replay only: how far the forecast was from the laps that came next
+    miss = None
+    if len(later) and len(old):
+        m = later.merge(old, left_on="lap_number", right_on="lap")
+        if len(m):
+            miss = float((m["deg_s"] - m["loss"]).abs().mean())
+
+    # a final stint has no stop coming, so the question is whether one more would pay
+    finish = None
+    if not has_next and len(old):
+        stay = float(old["loss"].sum() + old["loss"].iloc[-1])
+        pl = ctx["pit_loss"]
+        lane = pl.loc[pl["circuit"] == info["circuit"], "pit_loss_s"]
+        finish = {"gain_s": max(stay - float(tbl["cost_s"].min()), 0.0),
+                  "pit_lane_s": float(lane.iloc[0]) if len(lane) else float(pl["pit_loss_s"].median())}
+
+    return {
+        "stint_id": stint_id, "model": model_name, "next_compound": next_compound, "ms": ms,
+        "now": now, "first_lap": int(info["first_lap"]), "last_lap": int(info["last_lap"]),
+        "total_laps": int(info["total_laps"]), "segment_end": int(r["segment_end"]),
+        "compound": info["compound"], "team": info["team"], "driver": info["driver"],
+        "event": info["event_name"], "circuit": info["circuit"], "stint": int(info["stint"]),
+        "tyre_age": int(state["tyre_life"]), "position": int(state["position"]),
+        "gap_ahead": float(state["gap_ahead_s"]),
+        "gap_behind": float(ctx["gaps"].get((state["race_id"], state["driver"], now), 10.0)),
+        "best": best, "win_lo": win_lo, "win_hi": win_hi,
+        "status": "pit" if best <= now else ("open" if now >= win_lo else "stay"),
+        "actual_pit": r["actual_pit"], "has_next": bool(has_next), "finish": finish,
+        "wear_now": wear_now, "wear_at_best": wear_at_best, "fresh_after": fresh,
+        "bias": float(r["bias"]), "n_updates": int(r["n_seen"]), "miss": miss,
+        "seen": seen[["lap_number", "deg_s"]].reset_index(drop=True),
+        "later": later[["lap_number", "deg_s"]].reset_index(drop=True),
+        "old_curve": old.reset_index(drop=True), "new_curve": new.reset_index(drop=True),
+        "cost": tbl.assign(extra_s=tbl["cost_s"] - tbl["cost_s"].min())[["pit_lap", "extra_s", "in_window"]],
+    }

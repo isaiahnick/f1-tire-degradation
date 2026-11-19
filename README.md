@@ -49,19 +49,35 @@ the next set after p (Setup A model, the compound actually fitted next) + a comp
 Pit lane time is the same for every p, so it does not move the answer. The window is every lap
 within 1 s of the best.
 
-**Dashboard** (`app/`, the lecture's three-file layout): `model.py` loads the saved models and
-tables, `predict.py` turns a selection into curves and a recommendation, `app.py` is the UI. Tabs:
-2025 replay with pit window, plan-a-stint (Setup A what-if), and model results.
+**Dashboard** (`app/`): a pit wall assistant. A strategist partway through a stint wants to know how
+the tires are wearing, which lap is cheapest to stop on, and how that compares with what teams
+usually do. There is no live race to plug into, so the dashboard replays 2025 races the models never
+saw and stands the user on the pit wall at any lap.
+
+| Tab | Question it answers | What is on it |
+|---|---|---|
+| Race replay | When should this car stop? | The call (stay out / window open / pit this lap), PitWall's lap next to the typical team call and the real stop, the wear seen so far with the forecast, and a play button that steps the stint lap by lap |
+| Before the race | How will each compound wear here? | Setup A what-if for a circuit and team, before any laps are run |
+| Track record | Can I trust it? | The three project goals with met / not met, error by model, the lap-by-lap update, and the pit-timing backtest |
+
+Files follow the lecture's layout: `model.py` loads the saved models and tables, `predict.py` turns
+a selection into a forecast and a call (`snapshot` is the one function the UI reads), and `app.py`
+is the page. `charts.py` holds the Plotly figures and `style.css` the styling.
 
 ## Live demo checklist
 
-1. `make app` a few minutes early (the first load reads the data and models, about 30 s).
+1. `make app` a few minutes early (the first load reads the data and models, about 30 s). If the page
+   does not fit the screen, zoom the browser out one step (Cmd/Ctrl and minus).
 2. Data ingestion: `python -m pitwall ingest` pulls all 92 races and the practice sessions from the
    pinned archive (about 15 s).
-3. Dashboard: 2025 Spanish GP, Verstappen, stint 2 (recommended lap 29, real stop lap 29, typical team
-   call lap 30). The blue box explains what the model used and how long inference took. Drag the
-   decision-lap slider to re-check the forecast; switch the model to compare calls. Backups: Austria,
-   Hamilton, stint 1 (25 vs 26); Saudi Arabia, Russell, stint 1 (19 vs 20).
+3. Dashboard opens on the 2025 Spanish GP, Verstappen, stint 2, lap 22: "Stay out", pit on lap 29,
+   window 25 to 33, teams usually lap 30, Red Bull actually lap 29.
+4. Press Play (or drag the lap slider): the forecast is corrected after every lap and the call moves
+   with it, ending on "Pit this lap".
+5. Turn "What happened next" off to see only what the pit wall knew; change "New tires at the stop"
+   or the model (Model button) to see the call move.
+6. Backups are under the Examples button: Austria, Hamilton, stint 1 (25 vs 26 at its first lap);
+   Saudi Arabia, Russell, stint 1 (19 vs 20).
 
 ## Data source
 

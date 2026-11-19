@@ -41,4 +41,9 @@ def load_all():
         "offsets": pd.read_csv(m / "compound_offsets.csv"),
         "test_results": pd.read_csv(m / "test_results.csv"),
         "strategy_summary": pd.read_csv(m / "strategy_summary.csv"),
+        "update_by_horizon": pd.read_csv(m / "update_by_horizon.csv"),
+        "n_team_stops": len(pd.read_csv(m / "strategy_oof_train.csv")),   # stops the team-stop model learned from
+        "error_by_horizon": pd.read_csv(m / "test_error_by_horizon.csv"),
+        "error_by_compound": pd.read_csv(m / "test_error_by_compound.csv"),
+        "error_by_event": pd.read_csv(m / "test_error_by_event.csv"),
     }
