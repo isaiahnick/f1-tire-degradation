@@ -222,7 +222,7 @@ s.addNotes("Presenter: Isaiah. These are results on 2025, which was not used for
 s = slideWith("Where the Model Works and Where It Fails", "Methods and Results");
 head(s, "What drives the prediction", 0.45, 1.1, 4.5);
 img(s, "s_importance.png", 0.45, 1.45, 4.35);
-head(s, "Error by forecast distance (s per lap)", 5.15, 1.1, 4.5);
+head(s, "Forecast made after lap 5: error by distance", 5.15, 1.1, 4.5);
 img(s, "s_horizon.png", 5.2, 1.45, 4.35);
 takeaway(s, "Error grows the further ahead we predict: 0.31 s per lap within 5 laps, 0.60 s past 20. Hardest cases: street circuits and hard tires (longest stints).", 4.5, 0.6);
 s.addNotes("Presenter: Isaiah. The biggest driver is how much time the set lost over its first five laps, then how far ahead we predict, then the car's pace relative to the field, one of our new features. On the right, the final model against the baseline. Error grows with distance: 0.31 seconds per lap within five laps, 0.60 past twenty. The hardest cases are street circuits like Baku and Singapore, and hard tires, which run the longest stints. Because a forecast made at lap 5 gets worse the further ahead it looks, we added one more step to the final model.");
@@ -231,13 +231,14 @@ s.addNotes("Presenter: Isaiah. The biggest driver is how much time the set lost 
 s = slideWith("Updating the Forecast After Every Lap", "Methods and Results");
 stat(s, "24%", "lower error after lap 5 (0.38 vs. 0.50 s per lap)", 0.45, 1.15, 4.1);
 bullets(s, [
-  "Stops the error growth from the last slide",
+  "Same model as before; stops the error growth from the last slide",
   "After each lap, shift the forecast by its average error on the last 3 laps",
   "Uses only completed laps; no retraining",
   "Part of the final model and the dashboard",
 ], 0.45, 2.45, 4.1, 2.6, 13, 7);
-img(s, "s_update.png", 4.75, 1.15, 4.85);
-s.addNotes("Presenter: Isaiah. A forecast made at lap 5 gets worse the further ahead it looks, but the pit wall keeps seeing laps. So after every lap, the final model checks how far off it has been on the last three laps and shifts the rest of the forecast by that amount. It only uses laps that already happened, so there is no leakage, and nothing is retrained. The number of laps to average was picked by cross-validation. Grey is the forecast fixed at lap 5: its error grows as the stint goes on. Red is the updated forecast: it stays near 0.38 seconds per lap, 24% lower.");
+head(s, "Same model, forecast re-made as laps are seen", 4.8, 1.1, 4.8);
+img(s, "s_update.png", 4.8, 1.47, 4.8);
+s.addNotes("Presenter: Isaiah. A forecast made at lap 5 gets worse the further ahead it looks, but the pit wall keeps seeing laps. So after every lap, the final model checks how far off it has been on the last three laps and shifts the rest of the forecast by that amount. It only uses laps that already happened, so there is no leakage, and nothing is retrained. The number of laps to average was picked by cross-validation. This is the same final model as on the last slide. Here we move the point where the forecast is made later into the stint and average the error over the rest of the stint. The first point, 0.41, is the overall test MAE from the evaluation slide. Grey is the forecast frozen at lap 5: its error grows because it is asked about laps further and further away, the same effect as the last chart. Red re-makes the forecast with the correction: it stays near 0.38 seconds per lap, 24% lower.");
 
 // ================================================================ 9. Pit stop recommendation
 pres.addSection({ title: "Application" });
