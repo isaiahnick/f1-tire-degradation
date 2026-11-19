@@ -41,7 +41,7 @@ other 3 changed by under 0.4%).
 **After the first final run** we tested improvements without touching 2025 (`scripts/experiments/`,
 results in `reports/experiments/`) and kept: 2022 as extra training data, practice long-run wear,
 dirty air and car pace features, a GB + Ridge ensemble, and the online forecast update. 2025 was
-then scored a second time; the first final run is on the `final-presentation` history (commit a081123).
+then scored a second time; the first final run is kept on the `v1-final-presentation` branch.
 
 **Pit window:** at the decision point (5 laps past the stint's reference laps), for every candidate
 pit lap p, cost(p) = predicted loss on the current set through p (Setup B model) + predicted loss on
