@@ -4,7 +4,6 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from pitwall.features import COMPOUNDS
 from pitwall.models import feature_lists
 from pitwall.strategy import curves, layer_features, layer_predict, new_tire_rows, recommend
 from pitwall.update import recent_bias
@@ -107,25 +106,6 @@ def typical_team_call(ctx, stint_id: str, next_compound: str) -> int | None:
         "rec_m": p, "rec_m_win_lo": int(w.min()), "rec_m_win_hi": int(w.max())}])
     with_tm, m = lay["layers"]["Learned layer (tire model + race context)"]
     return int(layer_predict(m, row, layer_features(row, "m", lay["pit_loss"], with_tm))[0])
-
-
-def plan_curves(ctx, circuit: str, n_laps: int, team: str, model_name: str) -> pd.DataFrame:
-    """Setup A what-if: fresh-tire loss curve for each compound under chosen conditions."""
-    cfg = ctx["fcfg"]
-    na, ca, ia = feature_lists(cfg, "A")
-    base = ctx["feat"][(ctx["feat"]["circuit"] == circuit)].sort_values("year").iloc[-1].copy()
-    base["team"] = team
-    base["laps_remaining"] = base["laps_remaining"] + base["lap_number"] - 1
-    base["lap_number"], base["stint"] = 1, 1
-    base["position"], base["gap_ahead_s"] = 10, 2.0
-    out = []
-    model = ctx["A"][model_name]
-    for comp in COMPOUNDS:
-        prac = ctx["prac"].get((base["year"], base["event_name"], comp))
-        rows = new_tire_rows(base, 0, n_laps, comp, 1, True, prac)
-        out.append(pd.DataFrame({"compound": comp, "stint_lap": rows["stint_lap"],
-                                 "loss": model.predict(rows[na + ca + ia])}))
-    return pd.concat(out)
 
 
 def snapshot(ctx, stint_id: str, model_name: str, next_compound: str, lap: int) -> dict:

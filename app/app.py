@@ -23,7 +23,7 @@ import streamlit as st  # noqa: E402
 
 import charts  # noqa: E402
 from model import load_all  # noqa: E402
-from predict import best_setup, decision_laps, plan_curves, snapshot, typical_team_call  # noqa: E402
+from predict import best_setup, decision_laps, snapshot, typical_team_call  # noqa: E402
 
 st.set_page_config(page_title="PitWall", page_icon=":checkered_flag:", layout="wide")
 st.html(f"<style>{(HERE / 'style.css').read_text()}</style>")
@@ -184,7 +184,7 @@ st.html('<div class="pw-brand"><div class="pw-logo">Pit<span>Wall</span></div>'
 models = [FINAL_B] + (["LSTM"] if ctx["lstm_fn"] is not None else []) \
     + [m for m in ["Ridge", "Gradient boosting", "Random forest", "Linear baseline"] if m != FINAL_B]
 
-tab_replay, tab_plan, tab_record = st.tabs(["Race replay", "Before the race", "Track record"])
+tab_replay, tab_record = st.tabs(["Race replay", "Track record"])
 
 # ------------------------------------------------------------------ tab 1: race replay
 with tab_replay:
@@ -331,33 +331,7 @@ with tab_replay:
             ss["playing"] = False
         st.rerun()
 
-# ------------------------------------------------------------------ tab 2: before the race
-with tab_plan:
-    feat = ctx["feat"]
-    st.html('<div class="pw-sit"><h2>How will each compound wear? <em>Before a single lap is run</em></h2></div>')
-    circuits = sorted(feat.loc[feat["split"] == "test", "circuit"].unique())
-    teams = sorted(feat.loc[feat["split"] == "test", "team"].unique())
-    p1, p2, p3, p4 = st.columns([1.2, 1.2, 1.6, 1.2], vertical_alignment="bottom")
-    circuit = p1.selectbox("Circuit", circuits, index=circuits.index(s["circuit"]) if s["circuit"] in circuits else 0)
-    team_sel = p2.selectbox("Team", teams, index=teams.index(s["team"]) if s["team"] in teams else 0)
-    n = p3.slider("Stint length (laps)", 10, 40, 25)
-    plan_models = [m for m in ["Ridge", "Linear baseline", "Gradient boosting", "Random forest"] if m in ctx["A"]]
-    plan_model = p4.selectbox("Model", plan_models)
-    pc = plan_curves(ctx, circuit, n, team_sel, plan_model)
-    tiles = ""
-    for comp in COMPOUNDS:
-        g = pc[pc["compound"] == comp]
-        if len(g):
-            tiles += (f'<div class="pw-stat"><div class="l"><span class="tire {comp}"></span>{plural(comp)} after {n} laps</div>'
-                      f'<div class="v">{g["loss"].iloc[-1]:+.2f}<small>s a lap</small></div></div>')
-    st.html(f'<div class="pw-tiles">{tiles}</div>')
-    st.plotly_chart(charts.plan_figure(pc), theme=None, config=charts.CONFIG, width="stretch", key="plan_fig")
-    a_pct = ctx["test_results"].set_index(["setup", "model"]).loc[("A", plan_model), "test_mae_vs_baseline_pct"]
-    st.caption(f"This view only knows the circuit, team, compound and practice long runs. On 2025 that was "
-               f"{a_pct:.0f}% better than the baseline. Once a car has run 5 laps on a set, the race replay's "
-               f"forecast is {ctx['test_results'].set_index(['setup', 'model']).loc[('B', FINAL_B), 'test_mae_vs_baseline_pct']:.0f}% better.")
-
-# ------------------------------------------------------------------ tab 3: track record
+# ------------------------------------------------------------------ tab 2: track record
 with tab_record:
     tr, us = ctx["test_results"], ctx["update_summary"]
     b = tr[tr["setup"] == "B"].set_index("model")

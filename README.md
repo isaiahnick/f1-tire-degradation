@@ -57,7 +57,6 @@ saw and stands the user on the pit wall at any lap.
 | Tab | Question it answers | What is on it |
 |---|---|---|
 | Race replay | When should this car stop? | The call (stay out / window open / pit this lap), PitWall's lap next to the typical team call and the real stop, the wear seen so far with the forecast, and a play button that steps the stint lap by lap |
-| Before the race | How will each compound wear here? | Setup A what-if for a circuit and team, before any laps are run |
 | Track record | Can I trust it? | The three project goals with met / not met, error by model, the lap-by-lap update, and the pit-timing backtest |
 
 Files follow the lecture's layout: `model.py` loads the saved models and tables, `predict.py` turns

@@ -10,7 +10,6 @@ from plotly.subplots import make_subplots
 # happened, grey what teams usually do. Text stays in ink; the marks carry the color.
 RED, BLUE, INK, MUTED, FAINT, GRID = "#CC0000", "#1F5FA8", "#1A1A1A", "#666666", "#9A9A9A", "#ECECEC"
 WINDOW, BAR_GREY = "rgba(60,60,60,0.13)", "#C9C9C9"
-COMP = {"SOFT": "#D7261E", "MEDIUM": "#C98A00", "HARD": "#5C5C5C"}   # line colors (hard is white on the car)
 FONT = '"Source Sans 3", "Source Sans Pro", "Source Sans", Arial, sans-serif'
 CONFIG = {"displayModeBar": False, "responsive": True}
 HORIZON_MID = [3, 8, 13, 18, 25]      # middle of the laps-ahead buckets in the error tables
@@ -163,34 +162,6 @@ def cost_figure(s: dict, cap: float = 6.0) -> go.Figure:
     _base(fig, 290, top=10)
     fig.update_xaxes(title_text="Lap they stop on", dtick=5 if len(c) > 24 else 2)
     fig.update_yaxes(title_text="Seconds lost vs. the best lap", range=[-0.3, max(2.5, float(c["extra_s"].max()) * 1.1)])
-    return fig
-
-
-# ------------------------------------------------------------------ before the race
-def plan_figure(pc: pd.DataFrame) -> go.Figure:
-    fig = go.Figure()
-    ends = []
-    for comp in ["SOFT", "MEDIUM", "HARD"]:
-        g = pc[pc["compound"] == comp]
-        if not len(g):
-            continue
-        fig.add_trace(go.Scatter(x=g["stint_lap"], y=g["loss"], mode="lines", line=dict(color=COMP[comp], width=2.5),
-                                 hovertemplate=f"{comp.title()}: %{{y:+.2f}} s<extra></extra>"))
-        fig.add_trace(go.Scatter(x=[g["stint_lap"].iloc[-1]], y=[g["loss"].iloc[-1]], mode="markers",
-                                 marker=dict(color=COMP[comp], size=10, line=dict(color="white", width=2)),
-                                 hoverinfo="skip"))
-        ends.append([g["stint_lap"].iloc[-1], g["loss"].iloc[-1], comp])
-    gap = max(float(pc["loss"].max() - pc["loss"].min()), 0.1) * 0.07     # keep end labels apart
-    ends.sort(key=lambda e: e[1])
-    lab = [e[1] for e in ends]
-    for i in range(1, len(lab)):
-        lab[i] = max(lab[i], lab[i - 1] + gap)
-    for (x, y, comp), ly in zip(ends, lab):
-        _note(fig, x, ly, f"<b>{comp.title()}</b>  {y:+.2f} s", INK, xanchor="left", xshift=12)
-    _base(fig, 430, right=130)
-    fig.update_layout(hovermode="x unified")
-    fig.update_xaxes(title_text="Laps on the set")
-    fig.update_yaxes(title_text="Seconds per lap slower than on fresh tires", tickformat="+.1f")
     return fig
 
 

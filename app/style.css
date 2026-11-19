@@ -105,5 +105,4 @@ div[data-testid="stTabs"] [role="tablist"] {justify-content: flex-end;}
 .badge.miss {background: #FCE4E4; color: #8E0000;}
 .pw-steps {margin: 4px 0 0; padding-left: 20px; font-size: 1rem; line-height: 1.5;}
 .pw-steps li {margin-bottom: 6px;}
-.pw-tiles {display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 8px 0 6px;}
 .pw-why {font-size: 0.9rem; color: #666; line-height: 1.35; margin-top: 4px;}
