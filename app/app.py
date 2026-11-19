@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -59,7 +60,9 @@ with tab1:
                    index=["SOFT", "MEDIUM", "HARD"].index(default_next),
                    format_func=str.title)
 
+    t0 = time.perf_counter()
     r = stint_recommendation(ctx, sid, model_name, nxt)
+    infer_ms = 1000 * (time.perf_counter() - t0)
     win = r["table"][r["table"]["in_window"]]["pit_lap"]
     pl = ctx["pit_loss"]
     loss = pl[pl["circuit"] == r["info"]["circuit"]]["pit_loss_s"]
@@ -72,6 +75,13 @@ with tab1:
                       f"{abs(r['best'] - r['actual_pit'])} laps {'earlier' if r['actual_pit'] < r['best'] else 'later'} than ours")
                      if r["actual_pit"] else None),
               delta_color="off")
+
+    st_ = r["state"]
+    st.info(
+        f"**Why this lap:** over its first 5 laps this set lost {st_['early_deg_mean']:.2f} s on average, "
+        f"trending {st_['early_deg_slope']:+.2f} s per lap, with {int(st_['laps_remaining'])} laps left in the race. "
+        f"The model projects that forward, compares it with a new set of {nxt.title()}s, and picks the lap with "
+        f"the least total time lost. Inference took {infer_ms:.0f} ms.")
 
     obs = r["laps_obs"]
     seen = obs.iloc[:5]

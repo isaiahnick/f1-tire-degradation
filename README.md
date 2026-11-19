@@ -46,6 +46,13 @@ within 1 s of the best.
 tables, `predict.py` turns a selection into curves and a recommendation, `app.py` is the UI. Tabs:
 2025 replay with pit window, plan-a-stint (Setup A what-if), and model results.
 
+## Live demo checklist
+
+1. `make app` a few minutes early (the first load reads the data and models, about 30 s).
+2. Data ingestion: `python -m pitwall ingest` pulls all 70 races from the pinned archive (about 10 s).
+3. Dashboard: 2025 Chinese GP, Norris, stint 1 (recommended lap 15, real stop lap 15). The blue box
+   explains what the model used and how long inference took. Switch the model to compare calls.
+
 ## Data source
 
 The pipeline has two loaders that return the same canonical table
