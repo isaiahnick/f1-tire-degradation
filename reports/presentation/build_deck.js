@@ -241,14 +241,14 @@ s.addNotes("Presenter: Isaiah. A forecast made at lap 5 gets worse the further a
 
 // ================================================================ 9. Pit stop recommendation
 pres.addSection({ title: "Application" });
-s = slideWith("From Prediction to a Pit Stop Recommendation", "Application");
-head(s, "Step 1: tire model to pit lap", 0.45, 1.1, 4.1, RED);
-text(s, "Pick the lap with the least predicted time lost on the old plus new tires.", 0.45, 1.45, 4.1, 0.6, { fontSize: 13, color: INK });
-head(s, "Step 2: team-stop model", 0.45, 2.15, 4.1, RED);
-text(s, "Boosting model trained on 1,230 real stops (2022-2024): our pit window plus race context such as gap behind, position and stint.", 0.45, 2.5, 4.1, 0.9, { fontSize: 13, color: INK });
-img(s, "s_pit_backtest.png", 4.85, 1.12, 4.75);
-takeaway(s, "Tire wear alone matches 25% of the 404 stops in 2025; adding race context, 55%. Race context without the tire model also gets 56%: when teams pit is mostly strategy.");
-s.addNotes("Presenter: Isaiah. Step one turns the tire forecast into a decision: for each possible pit lap, add up the predicted time lost on the current tires and on the new set, and take the minimum. Compared with 404 real stops in 2025, that matches the team within three laps 25% of the time; the smoother linear baseline does a bit better. Step two is a team-stop model: a boosting model trained on 1,230 real stops from 2022 to 2024 that takes our pit window plus race context, like the gap to the car behind, and predicts when the team will stop. That reaches 55%. But it scores the same without our tire model, so when teams pit is driven mostly by strategy, like undercuts and planned stop counts. We did not reach the 60% goal.");
+s = slideWith("From Tire Predictions to Pit Decisions", "Application");
+head(s, "Tire model: when is it cheapest to stop?", 0.45, 1.1, 4.2, RED);
+text(s, "Picks the lap with the least predicted time lost on old plus new tires: the tire-optimal pit window.", 0.45, 1.45, 4.2, 0.7, { fontSize: 13, color: INK });
+head(s, "Team-stop model: when do teams stop?", 0.45, 2.25, 4.2, RED);
+text(s, "Boosting model trained on 1,230 real stops (2022-2024) from race context: position, gap behind, stint, laps left.", 0.45, 2.6, 4.2, 0.9, { fontSize: 13, color: INK });
+img(s, "s_pit_backtest.png", 4.8, 1.15, 4.8);
+takeaway(s, "Team timing follows strategy we cannot fully observe. PitWall supports the call: it shows the tire-optimal window next to what teams typically do.", 4.4, 0.65);
+s.addNotes("Presenter: Isaiah. Predicting tire wear and predicting when a team pits are two different questions. Our tire model answers the first: for each possible pit lap it adds up the predicted time lost on the current and new tires, which gives the tire-optimal window. To see how that compares with real decisions, we backtested 404 stops in 2025: the tire-optimal lap is within three laps of the team's stop 25% of the time. Then we trained a second model on 1,230 real stops from 2022 to 2024 to predict when teams stop from race context. It gets 56%, and adding our tire predictions does not change that. So team timing depends on strategy and on information that is not in public data, like planned stop counts, undercut plans and tire allocation. That is why we see PitWall as decision support: it tells the strategist what the tires say, and the strategist adds what we cannot see. We did not reach the 60% match goal, and we think matching teams was the wrong measure of a good pit call. If asked: using the linear baseline as the tire model gives 39%, because its straight-line curves produce a wider, mid-stint window that happens to sit near where teams stop; that is about curve shape, not accuracy.");
 
 // ================================================================ 10. Demo
 s = slideWith("Demonstration: PitWall Dashboard", "Application");
@@ -260,7 +260,7 @@ img(s, "s_dashboard.png", 0.45, 1.12, DW);
 head(s, "Live demo", 7.3, 1.1, 2.3, RED);
 bullets(s, [
   "Pick a 2025 race, driver and stint",
-  "Forecast, pit window and the actual stop",
+  "Tire-optimal window, typical team call, actual stop",
   "Slide the decision lap",
   "Switch models",
   "Plan a stint",
@@ -293,15 +293,15 @@ s = slideWith("Conclusions", "Conclusion");
 table(s, [
   ["Goal", "Target", "Result on 2025", "Met"],
   ["Predict lap time loss", "15% below baseline", "34% below (0.412 s vs. 0.628 s)", { text: "Yes", color: "2E7D32", bold: true }],
-  ["Pit lap within 3 laps of actual stop", "60% of stops", "25% alone, 55% with team-stop model", { text: "No", color: RED, bold: true }],
+  ["Pit lap within 3 laps of actual stop", "60% of stops", "25% (tire model), 56% (team-stop model)", { text: "No", color: RED, bold: true }],
   ["Fast enough for the pit wall", "under 1 s", "0.03 to 0.35 s", { text: "Yes", color: "2E7D32", bold: true }],
 ], 0.45, 1.15, 9.1, [2.7, 1.9, 3.7, 0.8], 13, [], 0.36);
 bullets(s, [
   "Final model: boosting + ridge, updated every lap (about 0.38 s per lap)",
   "Tire wear is predictable once a stint is underway; conditions alone are not enough",
-  "When teams pit depends mostly on strategy, not tire wear",
+  "Teams pit on strategy and information beyond public data; PitWall informs that decision",
 ], 0.45, 3.05, 9.1, 2.0, 15, 9);
-s.addNotes("Presenter: Isaiah. Against our goals: the prediction goal was met with room to spare and the dashboard is fast. The pit timing goal was not met. Our main takeaways: once a set of tires has run a few laps, the rest of the stint is predictable about a third better than the baseline, and updating lap by lap helps further. But when teams pit is mainly a strategy decision, so a better pit tool needs strategy information, not just better tire predictions.");
+s.addNotes("Presenter: Isaiah. Against our goals: the prediction goal was met with room to spare and the dashboard is fast. The pit timing goal was not met. Our main takeaways: once a set of tires has run a few laps, the rest of the stint is predictable about a third better than the baseline, and updating lap by lap helps further. When teams pit depends on strategy and information outside public data, so PitWall is best used to inform that decision: it shows what the tires say, and the strategist decides.");
 
 // ================================================================ 13. Questions
 s = pres.addSlide({ masterName: "DARK", sectionTitle: "Conclusion" });

@@ -152,26 +152,23 @@ def update():
 
 
 def pit_backtest():
-    s = pd.read_csv(M / "strategy_summary.csv")
-    names = {s["method"].iloc[0]: "Tire model (final)", "LSTM (one decision at lap 5)": "Tire model (LSTM)",
-             "Linear baseline": "Tire model (baseline)",
-             "Learned layer (tire model + race context)": "Team-stop model",
-             "Imitation only (race context, no tire model)": "Team-stop, no tire model",
-             "Midpoint (no model)": "Midpoint of stint"}
-    s["label"] = s["method"].map(names)
-    s = s.iloc[::-1].reset_index(drop=True)
-    fig, ax = plt.subplots(figsize=(6.6, 4.8))
-    y = np.arange(len(s))
-    colors = [RED if lab == "Team-stop model" else (DARK if lab.startswith("Tire") else MID)
-              for lab in s["label"]]
-    ax.barh(y, s["within_3_laps_pct"], color=colors, height=0.62)
-    for yi, v in zip(y, s["within_3_laps_pct"]):
-        ax.text(v + 0.8, yi, f"{v:.0f}%", va="center", fontsize=13)
+    """Two questions: when is it cheapest to stop (tire model) vs. when do teams stop."""
+    s = pd.read_csv(M / "strategy_summary.csv").set_index("method")
+    rows = [("Tire model only", s.iloc[0]["within_3_laps_pct"], DARK),
+            ("Team-stop model:\nrace context", s.loc["Imitation only (race context, no tire model)", "within_3_laps_pct"], MID),
+            ("Team-stop model:\nrace context + tire model", s.loc["Learned layer (tire model + race context)", "within_3_laps_pct"], MID),
+            ("Middle of the stint\n(reference)", s.loc["Midpoint (no model)", "within_3_laps_pct"], LIGHT)][::-1]
+    fig, ax = plt.subplots(figsize=(6.6, 4.4))
+    y = np.arange(len(rows))
+    ax.barh(y, [r[1] for r in rows], color=[r[2] for r in rows], height=0.6)
+    for yi, (_, v, c) in zip(y, rows):
+        ax.text(v - 1.0, yi, f"{v:.0f}%", va="center", ha="right", fontsize=14, fontweight="bold",
+                color="#1A1A1A" if c == LIGHT else "white")
     ax.axvline(60, color="#1A1A1A", ls=(0, (2, 2)), lw=1.2)
-    ax.text(60.8, len(s) - 0.55, "Goal 60%", fontsize=12, va="center")
-    ax.set_yticks(y, s["label"])
+    ax.text(60.8, len(rows) - 0.5, "Goal 60%", fontsize=12, va="center")
+    ax.set_yticks(y, [r[0] for r in rows])
     ax.set_xlim(0, 72)
-    ax.set_xlabel(f"Within 3 laps of actual stop (% of {int(s['stints'].iloc[0])})")
+    ax.set_xlabel(f"Within 3 laps of the team's stop (% of {int(s['stints'].iloc[0])}, 2025)")
     ax.grid(axis="y", visible=False)
     ax.grid(axis="x", visible=True)
     save(fig, "s_pit_backtest.png")
