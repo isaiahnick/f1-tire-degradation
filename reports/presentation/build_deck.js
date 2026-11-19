@@ -263,7 +263,7 @@ head(s, "Live demo", 7.3, 1.1, 2.3, RED);
 bullets(s, [
   "Pick a 2025 race, driver and stint",
   "Tire-optimal window, typical team call, actual stop",
-  "Slide the decision lap",
+  "Drag the current lap",
   "Switch models",
   "Plan a stint",
 ], 7.3, 1.48, 2.3, 2.8, 13, 7);

@@ -52,7 +52,7 @@ module.exports = [
     "- After every lap, we check how far off the forecast was over the last 3 laps and shift the rest of the forecast by that amount.",
     "- It only uses laps that have happened, and nothing is retrained.",
     "- The frozen forecast in grey climbs to 0.63; the updated one in red stays near 0.38, 24% lower.",
-    "- This is what the decision-lap slider does in the dashboard."),
+    "- This is what the current-lap slider does in the dashboard."),
   // 9 Pit decisions
   N("ISAIAH, 60 s",
     "- These are two different questions: when is it cheapest to stop, and when do teams actually stop.",
@@ -64,11 +64,12 @@ module.exports = [
   // 10 Demo
   N("ISAIAH, 2 to 4 min",
     "1. Terminal: python -m pitwall ingest pulls every race and practice session in about 15 s.",
-    "2. Dashboard: Spanish GP, Verstappen, stint 2. Dots are laps seen, the blue line is the forecast, the dashed line is new mediums, shading is the pit window.",
-    "3. Recommended lap 29, typical team call 30, actual stop 29. The blue box explains the call and the inference time.",
-    "4. Drag the decision-lap slider: the forecast updates.",
-    "5. Switch to the linear baseline or LSTM: the call moves.",
-    "6. Plan a stint tab: the loss curve for each compound before a stint starts.",
+    "2. Dashboard: Spanish GP, Verstappen, stint 2. Top row: PitWall says lap 29, the team stopped on 29, the typical team call is 30.",
+    "3. Left chart: black dots are laps seen, red is the forecast if they stay out, blue dashed is new Mediums, grey circles are what actually happened.",
+    "4. Right chart: total time lost for each stop lap. The lowest point is lap 29; anything within 1 s is the window.",
+    "5. Drag the current-lap slider: the forecast updates.",
+    "6. Switch to the linear baseline or LSTM: the call moves.",
+    "7. Plan a stint tab: the wear curve for each compound before a stint starts.",
     "Backups: Austria, Hamilton, stint 1 (25 vs. 26). Saudi Arabia, Russell, stint 1 (19 vs. 20)."),
   // 11 Limitations
   N("ISAIAH, 30 s",
