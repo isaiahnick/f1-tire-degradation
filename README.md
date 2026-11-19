@@ -4,7 +4,7 @@ EM 538 capstone, Team 9 (Isaiah Nick, Anand Vadlamani).
 
 We predict how much slower each lap gets as a tire wears (lap time loss in seconds,
 fuel-corrected, relative to the start of the stint), then use that to recommend a pit
-window. Data: every dry 2023 to 2025 Grand Prix, from FastF1.
+window. Data: every dry 2022 to 2025 Grand Prix plus practice sessions, from FastF1.
 
 ## Quick start
 
@@ -21,7 +21,7 @@ All settings live in `configs/default.yaml`.
 
 ```bash
 pip install -e ".[dl,app]"     # adds torch, streamlit, plotly (or: conda env update -f environment.yml)
-make final                     # tune -> lstm -> evaluate (2025 test, once) -> strategy backtest
+make final                     # tune -> lstm -> evaluate (2025 test) -> update -> strategy backtest
 python scripts/make_figures.py --final
 make app                       # Streamlit dashboard at http://localhost:8501
 ```
@@ -30,11 +30,18 @@ make app                       # Streamlit dashboard at http://localhost:8501
 |---|---|---|---|
 | tune | `pitwall/tune.py` | Grid search inside the same grouped folds; weather-feature test | `tuning_results.csv`, `tuned_params.json`, `weather_ablation.csv` |
 | lstm | `pitwall/lstm.py` | PyTorch LSTM over the first 5 laps of a stint (Setup B task), size sweep + 3 seeds | `lstm_sweep.csv`, `lstm_summary.json` |
-| evaluate | `pitwall/test.py` | Refits tuned models on 2023-24, scores 2025 once, saves final models to `models/` | `test_results.csv`, `test_error_by_*.csv` |
-| strategy | `pitwall/strategy.py` | Pit window recommender; chooses a monotone-curve option on 2024, then backtests 2025 green flag stops | `strategy_backtest.csv`, `strategy_summary.csv` |
+| evaluate | `pitwall/test.py` | Refits tuned models (and the GB + Ridge ensemble) on 2022-24, scores 2025, saves final models to `models/` | `test_results.csv`, `test_error_by_*.csv` |
+| update | `pitwall/update.py` | Online error correction: shifts the Setup B forecast by its mean error on the last k laps seen (k by CV) | `update_*.csv`, `update_summary.json` |
+| strategy | `pitwall/strategy.py` | Pit window recommender; decision options chosen on 2024; learned strategy layer (with a race-context-only ablation); backtests 2025 green flag stops | `strategy_*.csv`, `strategy_layer_importance.csv` |
 
 Final feature set: weather (track/air temperature, humidity) is dropped (`features.drop_weather` in the
-config) because removing it lowered CV error for 7 of 8 tuned models.
+config) because removing it lowered CV error for 5 of 8 tuned models, including the best one (the
+other 3 changed by under 0.4%).
+
+**After the first final run** we tested improvements without touching 2025 (`scripts/experiments/`,
+results in `reports/experiments/`) and kept: 2022 as extra training data, practice long-run wear,
+dirty air and car pace features, a GB + Ridge ensemble, and the online forecast update. 2025 was
+then scored a second time; the first final run is on the `final-presentation` history (commit a081123).
 
 **Pit window:** at the decision point (5 laps past the stint's reference laps), for every candidate
 pit lap p, cost(p) = predicted loss on the current set through p (Setup B model) + predicted loss on
@@ -49,9 +56,12 @@ tables, `predict.py` turns a selection into curves and a recommendation, `app.py
 ## Live demo checklist
 
 1. `make app` a few minutes early (the first load reads the data and models, about 30 s).
-2. Data ingestion: `python -m pitwall ingest` pulls all 70 races from the pinned archive (about 10 s).
-3. Dashboard: 2025 Chinese GP, Norris, stint 1 (recommended lap 15, real stop lap 15). The blue box
-   explains what the model used and how long inference took. Switch the model to compare calls.
+2. Data ingestion: `python -m pitwall ingest` pulls all 92 races and the practice sessions from the
+   pinned archive (about 15 s).
+3. Dashboard: 2025 Spanish GP, Verstappen, stint 2 (recommended lap 29, real stop lap 29, typical team
+   call lap 30). The blue box explains what the model used and how long inference took. Drag the
+   decision-lap slider to re-check the forecast; switch the model to compare calls. Backups: Austria,
+   Hamilton, stint 1 (25 vs 26); Saudi Arabia, Russell, stint 1 (19 vs 20).
 
 ## Data source
 
@@ -84,12 +94,12 @@ laps slower than 107% of the race's fastest (fuel-corrected), and within-stint
 outliers (more than 1 s and 5 robust sigma off a rolling median).
 
 **Fuel correction:** 110 kg at the start, burned linearly to zero, 0.03 s per kg. The
-clean stage re-estimates this from the 2023 to 2024 data (`fuel_check.json`) as a check.
+clean stage re-estimates this from the 2022 to 2024 data (`fuel_check.json`) as a check.
 
 **Target `deg_s`:** fuel-corrected lap time minus the median of the stint's first 3
 clean laps. Those 3 reference laps are not target rows.
 
-**Splits:** train = 2023 and 2024, test = 2025 (locked, not read by `train`). Train rows
+**Splits:** train = 2022 to 2024, test = 2025 (locked, not read by `train`). Train rows
 carry a `cv_fold` (GroupKFold by race, 5 folds) so every model, including the LSTM,
 uses identical folds.
 
