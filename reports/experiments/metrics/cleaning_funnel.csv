@@ -1,0 +1,13 @@
+step,laps_remaining,races,laps_removed
+raw laps,100038,91,0
+remove wet races,87417,79,12621
+excluded events,84755,77,2662
+missing lap time / tire info,83776,77,979
+non-dry compound,83776,77,0
+lap 1,82289,77,1487
+pit in / out laps,77034,77,5255
+safety car / VSC / red flag,73348,77,3686
+rainfall during lap,72914,77,434
+inaccurate / deleted / generated,71824,77,1090
+slower than 107% of fastest,70909,77,915
+within-stint outliers,68714,77,2195

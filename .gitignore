@@ -19,3 +19,4 @@ data/interim/
 
 # fitted models are rebuilt by `make final`
 models/
+data_exp/

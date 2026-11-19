@@ -1,0 +1,2 @@
+,,B frozen,B + bias,C Gradient boosting,C Ridge,Rule: flat recent level,Rule: extend all-laps line
+overall,val_mae,0.5182480051300149,0.41927890128602785,0.4194853745101609,0.43095645580355624,0.5777825920461774,0.7397350507040326

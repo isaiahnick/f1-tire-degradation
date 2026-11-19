@@ -1,0 +1,75 @@
+  [B] GB tuned (base)                               val 0.4576  train 0.3185  folds [np.float64(0.4684), np.float64(0.433), np.float64(0.4381), np.float64(0.4993), np.float64(0.4494)]  (7.7s)
+  [B] GB monotone: wear only (stint_lap, tyre_life) val 0.4585  train 0.3187  folds [np.float64(0.4716), np.float64(0.4317), np.float64(0.4399), np.float64(0.4984), np.float64(0.4509)]  (7.7s)
+  [B] GB monotone: + history (early mean/slope)     val 0.4570  train 0.3260  folds [np.float64(0.4734), np.float64(0.4362), np.float64(0.4318), np.float64(0.4959), np.float64(0.4476)]  (8.0s)
+  [B] GB loss=absolute_error                        val 0.4584  train 0.3228  folds [np.float64(0.4751), np.float64(0.4476), np.float64(0.4354), np.float64(0.4874), np.float64(0.4463)]  (11.3s)
+  [B] GB smoothed target (3-lap median)             val 0.4584  train 0.3191  folds [np.float64(0.4742), np.float64(0.4298), np.float64(0.4383), np.float64(0.5002), np.float64(0.4494)]  (7.5s)
+  [B] GB smoothed target (5-lap median)             val 0.4573  train 0.3215  folds [np.float64(0.4726), np.float64(0.4331), np.float64(0.44), np.float64(0.4951), np.float64(0.4455)]  (7.6s)
+  [B] Ridge tuned                                   val 0.4627  train 0.4303  folds [np.float64(0.4873), np.float64(0.4443), np.float64(0.4785), np.float64(0.4572), np.float64(0.4461)]  (0.3s)
+  [B] Ridge smoothed target (3-lap median)          val 0.4623  train 0.4300  folds [np.float64(0.4859), np.float64(0.4482), np.float64(0.4789), np.float64(0.4528), np.float64(0.4458)]  (0.5s)
+  [B] Ridge smoothed target (5-lap median)          val 0.4628  train 0.4306  folds [np.float64(0.4859), np.float64(0.451), np.float64(0.4797), np.float64(0.4507), np.float64(0.4467)]  (0.4s)
+  [B] RF tuned                                      val 0.4656  train 0.3070  folds [np.float64(0.4909), np.float64(0.4398), np.float64(0.463), np.float64(0.483), np.float64(0.4514)]  (12.5s)
+  [B] GB quantile 0.10                              val 0.6346  train 0.5656  folds [np.float64(0.6635), np.float64(0.6747), np.float64(0.6415), np.float64(0.5879), np.float64(0.6052)]  (11.4s)
+  [B] GB quantile 0.90                              val 0.6854  train 0.5929  folds [np.float64(0.7638), np.float64(0.551), np.float64(0.6757), np.float64(0.7566), np.float64(0.68)]  (11.6s)
+/home/claude/pw_laptop/scripts/experiments/exp_ml.py:58: FutureWarning: DataFrameGroupBy.apply operated on the grouping columns. This behavior is deprecated, and in a future version of pandas the grouping columns will be excluded from the operation. Either pass `include_groups=False` to exclude the groupings or explicitly select the grouping columns after groupby to silence this warning.
+  byh = q.groupby("hb", observed=True).apply(lambda g: pd.Series({
+  [B] 80% interval: coverage 0.666, median width 1.08 s
+          coverage  median_width_s       n
+hb                                        
+(0, 5]       0.720           0.899  7237.0
+(5, 10]      0.670           1.062  5555.0
+(10, 15]     0.637           1.206  3659.0
+(15, 20]     0.612           1.242  2234.0
+(20, 99]     0.577           1.283  2214.0
+  [A] GB tuned (base)                               val 0.5557  train 0.4069  folds [np.float64(0.5767), np.float64(0.4963), np.float64(0.5672), np.float64(0.5748), np.float64(0.5637)]  (8.1s)
+  [A] GB monotone: wear only (stint_lap, tyre_life) val 0.5647  train 0.4130  folds [np.float64(0.5934), np.float64(0.5217), np.float64(0.571), np.float64(0.5652), np.float64(0.572)]  (7.9s)
+  [A] GB loss=absolute_error                        val 0.5556  train 0.4094  folds [np.float64(0.5735), np.float64(0.5074), np.float64(0.5648), np.float64(0.5746), np.float64(0.5575)]  (11.8s)
+  [A] GB smoothed target (3-lap median)             val 0.5574  train 0.4077  folds [np.float64(0.5824), np.float64(0.4969), np.float64(0.57), np.float64(0.5738), np.float64(0.564)]  (8.0s)
+  [A] GB smoothed target (5-lap median)             val 0.5583  train 0.4097  folds [np.float64(0.5832), np.float64(0.5006), np.float64(0.5754), np.float64(0.57), np.float64(0.5622)]  (7.8s)
+  [A] Ridge tuned                                   val 0.5740  train 0.5325  folds [np.float64(0.5831), np.float64(0.5528), np.float64(0.6307), np.float64(0.5437), np.float64(0.5597)]  (0.5s)
+  [A] Ridge smoothed target (3-lap median)          val 0.5746  train 0.5329  folds [np.float64(0.5822), np.float64(0.5558), np.float64(0.632), np.float64(0.5424), np.float64(0.5605)]  (0.4s)
+  [A] Ridge smoothed target (5-lap median)          val 0.5749  train 0.5335  folds [np.float64(0.5819), np.float64(0.5562), np.float64(0.6333), np.float64(0.5423), np.float64(0.5609)]  (0.4s)
+  [A] RF tuned                                      val 0.5649  train 0.3770  folds [np.float64(0.5821), np.float64(0.5149), np.float64(0.5805), np.float64(0.5853), np.float64(0.5615)]  (16.8s)
+  [A] GB quantile 0.10                              val 0.8259  train 0.7272  folds [np.float64(0.9265), np.float64(0.7761), np.float64(0.8025), np.float64(0.8159), np.float64(0.8085)]  (11.8s)
+  [A] GB quantile 0.90                              val 0.8021  train 0.7294  folds [np.float64(0.8635), np.float64(0.6772), np.float64(0.8037), np.float64(0.8584), np.float64(0.8075)]  (11.4s)
+/home/claude/pw_laptop/scripts/experiments/exp_ml.py:58: FutureWarning: DataFrameGroupBy.apply operated on the grouping columns. This behavior is deprecated, and in a future version of pandas the grouping columns will be excluded from the operation. Either pass `include_groups=False` to exclude the groupings or explicitly select the grouping columns after groupby to silence this warning.
+  byh = q.groupby("hb", observed=True).apply(lambda g: pd.Series({
+  [A] 80% interval: coverage 0.684, median width 1.34 s
+          coverage  median_width_s       n
+hb                                        
+(0, 5]       0.778           0.918  1196.0
+(5, 10]      0.707           1.136  7759.0
+(10, 15]     0.701           1.334  7147.0
+(15, 20]     0.678           1.401  5500.0
+(20, 99]     0.640           1.539  8329.0
+  [B] ensemble GB+Ridge                       val 0.4508
+  [B] ensemble GB+RF                          val 0.4560
+  [B] ensemble GB+Ridge+RF                    val 0.4524
+  [A] ensemble GB+Ridge                       val 0.5530
+  [A] ensemble GB+RF                          val 0.5571
+  [A] ensemble GB+Ridge+RF                    val 0.5530
+setup                                         label  val_mae  train_mae  delta_pct  folds_better
+    B                               GB tuned (base)   0.4576     0.3185     0.0000             0
+    B GB monotone: wear only (stint_lap, tyre_life)   0.4585     0.3187     0.1869             2
+    B     GB monotone: + history (early mean/slope)   0.4570     0.3260    -0.1455             3
+    B                        GB loss=absolute_error   0.4584     0.3228     0.1570             3
+    B             GB smoothed target (3-lap median)   0.4584     0.3191     0.1601             1
+    B             GB smoothed target (5-lap median)   0.4573     0.3215    -0.0809             2
+    B                                   Ridge tuned   0.4627     0.4303     1.0966             2
+    B          Ridge smoothed target (3-lap median)   0.4623     0.4300     1.0267             2
+    B          Ridge smoothed target (5-lap median)   0.4628     0.4306     1.1271             2
+    B                                      RF tuned   0.4656     0.3070     1.7389             1
+    B                             ensemble GB+Ridge   0.4508        NaN    -1.4870             4
+    B                                ensemble GB+RF   0.4560        NaN    -0.3553             3
+    B                          ensemble GB+Ridge+RF   0.4524        NaN    -1.1394             3
+    A                               GB tuned (base)   0.5557     0.4069     0.0000             0
+    A GB monotone: wear only (stint_lap, tyre_life)   0.5647     0.4130     1.6065             1
+    A                        GB loss=absolute_error   0.5556     0.4094    -0.0281             4
+    A             GB smoothed target (3-lap median)   0.5574     0.4077     0.3023             1
+    A             GB smoothed target (5-lap median)   0.5583     0.4097     0.4551             2
+    A                                   Ridge tuned   0.5740     0.5325     3.2837             2
+    A          Ridge smoothed target (3-lap median)   0.5746     0.5329     3.3892             2
+    A          Ridge smoothed target (5-lap median)   0.5749     0.5335     3.4571             2
+    A                                      RF tuned   0.5649     0.3770     1.6414             1
+    A                             ensemble GB+Ridge   0.5530        NaN    -0.4980             3
+    A                                ensemble GB+RF   0.5571        NaN     0.2386             2
+    A                          ensemble GB+Ridge+RF   0.5530        NaN    -0.4863             3

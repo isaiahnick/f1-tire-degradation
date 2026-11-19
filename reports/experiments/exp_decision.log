@@ -1,0 +1,15 @@
+2023 oof fold 0: 121 stints
+2023 oof fold 1: 44 stints
+2023 oof fold 2: 63 stints
+2023 oof fold 3: 61 stints
+2023 oof fold 4: 117 stints
+                          method  stints  within_3_laps_pct  within_5_laps_pct  mean_abs_error_laps  median_error_laps  actual_in_window_pct  median_window_laps
+                   P0 production     441              27.44              43.99                 8.30               -2.0                 37.19                 9.0
+                     P1 smoothed     441              29.93              46.03                 8.17               -3.0                 40.36                10.0
+                    P2 rolling B     441              32.20              48.75                 7.32               -4.0                 35.15                 6.0
+               P3 rolling B+bias     441              30.61              47.85                 7.37               -4.0                 31.75                 6.0
+                    P4 rolling C     441              31.52              49.89                 6.90               -4.0                 31.52                 6.0
+                     P5 better A     441              30.16              44.67                 8.24               -2.0                 40.82                 9.0
+                        Midpoint     441              27.21              39.46                 7.06                6.0                   NaN                 NaN
+  L learned layer (P0 + context)     441              53.97              75.06                 3.95                0.0                   NaN                 NaN
+L imitation only (no tire model)     441              54.20              73.70                 3.99                0.0                   NaN                 NaN

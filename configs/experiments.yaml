@@ -1,0 +1,79 @@
+seed: 42
+seasons:
+- 2022
+- 2023
+- 2024
+- 2025
+train_seasons:
+- 2023
+- 2024
+test_seasons:
+- 2025
+paths:
+  external: data/external
+  raw: data_exp/raw
+  interim: data_exp/interim
+  processed: data_exp/processed
+  figures: reports/experiments/figures
+  metrics: reports/experiments/metrics
+  models: models_exp
+ingest:
+  source: archive
+  archive:
+    url: https://github.com/TracingInsights/{year}
+    commits:
+      2023: 737c84d3ae14b9883a671ca248d015b69cf1cb58
+      2024: d1543a71370d9b617b627319f8ad80b2f85dfd5e
+      2025: dfb3ea3f50b69857fe8e40cabe5e899743c59f6a
+cleaning:
+  dry_compounds:
+  - SOFT
+  - MEDIUM
+  - HARD
+  wet_compounds:
+  - INTERMEDIATE
+  - WET
+  wet_race_lap_share: 0.1
+  sc_track_codes:
+  - '4'
+  - '5'
+  - '6'
+  - '7'
+  quicklap_threshold: 1.07
+  outlier_window: 5
+  outlier_mad_k: 5.0
+  outlier_min_s: 1.0
+  exclude_events:
+  - Monaco Grand Prix
+fuel:
+  start_kg: 110.0
+  s_per_kg: 0.03
+target:
+  reference_laps: 3
+  min_clean_laps: 6
+  history_laps: 5
+features:
+  numeric:
+  - stint_lap
+  - tyre_life
+  - tyre_life_start
+  - stint
+  - fresh_tyre
+  - track_temp
+  - air_temp
+  - humidity
+  - laps_remaining
+  - race_progress
+  - gap_ahead_s
+  - position
+  categorical:
+  - compound
+  - circuit
+  - team
+  drop_weather: true
+  history:
+  - early_deg_mean
+  - early_deg_slope
+  - laps_ahead
+cv:
+  n_splits: 5
