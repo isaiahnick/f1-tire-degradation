@@ -236,7 +236,7 @@ bullets(s, [
   "Uses only completed laps; no retraining",
   "Part of the final model and the dashboard",
 ], 0.45, 2.45, 4.1, 2.6, 13, 7);
-head(s, "Same model, forecast re-made as laps are seen", 4.8, 1.1, 4.8);
+head(s, "GB + Ridge ensemble, forecast re-made each lap", 4.8, 1.1, 4.8);
 img(s, "s_update.png", 4.8, 1.47, 4.8);
 s.addNotes("Presenter: Isaiah. A forecast made at lap 5 gets worse the further ahead it looks, but the pit wall keeps seeing laps. So after every lap, the final model checks how far off it has been on the last three laps and shifts the rest of the forecast by that amount. It only uses laps that already happened, so there is no leakage, and nothing is retrained. The number of laps to average was picked by cross-validation. This is the same final model as on the last slide. Here we move the point where the forecast is made later into the stint and average the error over the rest of the stint. The first point, 0.41, is the overall test MAE from the evaluation slide. Grey is the forecast frozen at lap 5: its error grows because it is asked about laps further and further away, the same effect as the last chart. Red re-makes the forecast with the correction: it stays near 0.38 seconds per lap, 24% lower.");
 
