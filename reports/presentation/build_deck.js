@@ -85,6 +85,11 @@ function table(s, rows, x, y, w, colW, size = 12, hilite = [], rowH = 0.29) {
   }));
   s.addTable(data, { x, y, w, colW, rowH, border: { type: "solid", pt: 0.5, color: "D0D0D0" }, valign: "middle", margin: 0.06 });
 }
+// one-line takeaway in a light grey box at the bottom of the slide
+function takeaway(s, t, y = 4.45, h = 0.65) {
+  s.addShape(pres.shapes.RECTANGLE, { x: 0.45, y, w: 9.1, h, fill: { color: LIGHT }, line: { color: LIGHT } });
+  s.addText(t, { x: 0.6, y, w: 8.8, h, fontSize: 13, color: INK, valign: "middle", isTextBox: true, margin: 2 });
+}
 // tire sidewall: rubber, compound-colored ring, grey rim
 function tire(s, x, y, d, ring) {
   s.addShape(pres.shapes.OVAL, { x, y, w: d, h: d, fill: { color: "0D0D0D" }, line: { color: "3A3A3A", width: 1 } });
@@ -174,9 +179,7 @@ bullets(s, [
   "Time in dirty air and mean gap ahead (new)",
   "Car pace vs. the field on the same laps (new)",
 ], 5.15, 2.3, 4.4, 2.0, 13, 4);
-s.addShape(pres.shapes.RECTANGLE, { x: 0.45, y: 4.35, w: 9.1, h: 0.72, fill: { color: LIGHT }, line: { color: LIGHT } });
-text(s, "Tested one change at a time with cross-validation: the new features lowered error about 4% and adding 2022 data about 3%. Weather was dropped because it did not improve CV error.",
-  0.6, 4.4, 8.8, 0.65, { fontSize: 12, color: INK, valign: "middle" });
+takeaway(s, "Each change was tested with cross-validation: new features lowered error about 4%, adding 2022 about 3%. Weather was dropped (no gain).");
 s.addNotes("Presenter: Anand. We frame two versions of the problem. Setup A only uses what is known before the stint starts, which was our proposal. Setup B is the real pit-wall situation: after five laps on the set, how will the rest of the stint go. We added three features from F1 knowledge: the wear rate from Friday and Saturday practice long runs, how much of the early stint was spent in dirty air behind another car, and how fast this car is compared with the field. We tested each change with cross-validation before keeping it.");
 
 // ================================================================ 5. Models and validation
@@ -207,47 +210,45 @@ s = slideWith("Model Evaluation (Setup B, 2025 Test Season)", "Methods and Resul
 img(s, "s_train_test.png", 0.35, 1.12, 5.6);
 stat(s, "34%", "lower test MAE than the linear baseline (goal: 15%)", 6.2, 1.12, 3.4);
 bullets(s, [
-  "MAE is the average miss per lap: 0.41 s for the final model vs. 0.63 s for the baseline",
-  "For scale: a soft tire is about 1 s slower after 20 laps; a pit stop costs about 20 s",
-  "Selected by CV before testing; Ridge, LSTM and boosting are close behind",
-  "Trees overfit (train 0.28 vs. test 0.43); the baseline underfits (R² 0.06)",
-  "Conditions only (Setup A): just 5% better than the baseline",
-], 6.2, 2.3, 3.45, 2.9, 12, 5);
-s.addNotes("Presenter: Isaiah. These are results on 2025, which was not used for training or model selection. MAE is the average miss per predicted lap: our final model is off by about four tenths of a second, the baseline by six tenths. For scale, a soft tire is about a second slower after 20 laps, so the model tracks wear well. Once the model has seen five laps, every model beats the baseline, and the ensemble is 34% better, well past our 15% goal. Grey is training error and dark is test error. Random forest and boosting fit training data much better than test data, which is overfitting; ridge is within 4%. Averaging boosting with ridge reduces that variance. The top models are within about a hundredth of a second, so ridge is an equally good and simpler choice. With conditions only, the gain is just 5%: you need to see how this set of tires is running.");
+  "Average miss per lap: 0.41 s (baseline: 0.63 s)",
+  "Trees overfit: train 0.28 s, test 0.43 s",
+  "Baseline underfits: R² 0.06",
+  "Conditions only (Setup A): 5% better",
+], 6.2, 2.4, 3.4, 2.0, 13, 6);
+text(s, "For scale: a soft tire is about 1 s slower after 20 laps.", 6.2, 4.45, 3.4, 0.5, { fontSize: 11, color: MIDG });
+s.addNotes("Presenter: Isaiah. These are results on 2025, which was not used for training or model selection. MAE is the average miss per predicted lap: our final model is off by about four tenths of a second, the baseline by six tenths. For scale, a soft tire is about a second slower after 20 laps. The final model is 34% better than the baseline, well past our 15% goal. Grey bars are training error and dark bars are test error: random forest and boosting fit training data much better than test data, which is overfitting, and averaging boosting with ridge reduces that. The top models are within about a hundredth of a second, so ridge is an equally good, simpler choice. With conditions only, the gain is just 5%: you need to see how this set of tires is running.");
 
 // ================================================================ 7. Interpretation
 s = slideWith("Where the Model Works and Where It Fails", "Methods and Results");
 head(s, "What drives the prediction", 0.45, 1.1, 4.5);
-img(s, "s_importance.png", 0.4, 1.48, 4.55);
-head(s, "Error grows with forecast distance (s per lap)", 5.15, 1.1, 4.5);
-img(s, "s_horizon.png", 5.1, 1.48, 4.55);
-text(s, "Within 5 laps the forecast is off by 0.31 s per lap; past 20 laps, by 0.60 s. Hardest races: Azerbaijan, Singapore, Canada (0.54-0.58 s). Hard tires have the largest error (0.47 s vs. 0.30 s for softs) because they run the longest stints.",
-  0.45, 4.55, 9.1, 0.55, { fontSize: 12, color: INK });
-s.addNotes("Presenter: Isaiah. The biggest driver is how much time the set lost over its first five laps, then how far ahead we are predicting, then the car's pace relative to the field, one of our new features. On the right, the final model in red against the baseline: error grows with distance, from 0.31 seconds per lap within five laps to 0.60 past twenty. The next slide is how we deal with that. That matches what we would expect from tire wear. The model struggles most on street circuits and on hard tires, which run the longest stints.");
+img(s, "s_importance.png", 0.45, 1.45, 4.35);
+head(s, "Error by forecast distance (s per lap)", 5.15, 1.1, 4.5);
+img(s, "s_horizon.png", 5.2, 1.45, 4.35);
+takeaway(s, "Error grows the further ahead we predict: 0.31 s per lap within 5 laps, 0.60 s past 20. Hardest cases: street circuits and hard tires (longest stints).", 4.5, 0.6);
+s.addNotes("Presenter: Isaiah. The biggest driver is how much time the set lost over its first five laps, then how far ahead we predict, then the car's pace relative to the field, one of our new features. On the right, the final model against the baseline. Error grows with distance: 0.31 seconds per lap within five laps, 0.60 past twenty. The hardest cases are street circuits like Baku and Singapore, and hard tires, which run the longest stints. Because a forecast made at lap 5 gets worse the further ahead it looks, we added one more step to the final model.");
 
 // ================================================================ 8. Forecast update
-s = slideWith("Final Model: Correcting the Forecast After Every Lap", "Methods and Results");
-stat(s, "24%", "lower 2025 error after lap 5 (0.38 vs. 0.50 s per lap)", 0.45, 1.15, 4.1);
+s = slideWith("Updating the Forecast After Every Lap", "Methods and Results");
+stat(s, "24%", "lower error after lap 5 (0.38 vs. 0.50 s per lap)", 0.45, 1.15, 4.1);
 bullets(s, [
-  "Fixes the error growth from the previous slide: the final model stays near 0.38 s per lap however long the stint runs",
-  "After each lap, shift the remaining forecast by the model's average error over the last 3 laps",
-  "Uses only completed laps; nothing is retrained",
-  "Number of laps to average chosen by cross-validation; the dashboard applies it live",
-], 0.45, 2.4, 4.1, 2.75, 13, 6);
+  "Stops the error growth from the last slide",
+  "After each lap, shift the forecast by its average error on the last 3 laps",
+  "Uses only completed laps; no retraining",
+  "Part of the final model and the dashboard",
+], 0.45, 2.45, 4.1, 2.6, 13, 7);
 img(s, "s_update.png", 4.75, 1.15, 4.85);
-s.addNotes("Presenter: Isaiah. This is part of the final model, not an add-on. The model looks at the first five laps and then would stop learning about the stint. But the pit wall keeps watching. So after every lap we check how far off the forecast has been on the last three laps and shift the rest of the forecast by that amount. It only uses laps that already happened, so there is no leakage. The grey line is the fixed forecast: its error grows the longer the stint goes. With the update, error stays near 0.38 seconds, 24% lower overall after lap five.");
+s.addNotes("Presenter: Isaiah. A forecast made at lap 5 gets worse the further ahead it looks, but the pit wall keeps seeing laps. So after every lap, the final model checks how far off it has been on the last three laps and shifts the rest of the forecast by that amount. It only uses laps that already happened, so there is no leakage, and nothing is retrained. The number of laps to average was picked by cross-validation. Grey is the forecast fixed at lap 5: its error grows as the stint goes on. Red is the updated forecast: it stays near 0.38 seconds per lap, 24% lower.");
 
 // ================================================================ 9. Pit stop recommendation
 pres.addSection({ title: "Application" });
 s = slideWith("From Prediction to a Pit Stop Recommendation", "Application");
-head(s, "Step 1: tire model to pit lap", 0.45, 1.08, 4.1, RED);
-text(s, "For every possible pit lap, add the predicted time lost on the current tires and on the new set. The lap with the lowest total is the recommendation.", 0.45, 1.42, 4.1, 0.8, { fontSize: 12, color: INK });
-head(s, "Step 2: team-stop model", 0.45, 2.2, 4.1, RED);
-text(s, "Gradient boosting trained on 1,230 real stops from 2022-2024. Inputs: our recommended window plus race context (gap to the car behind, position, stint, laps left). Output: the lap the team is likely to stop.", 0.45, 2.54, 4.1, 1.05, { fontSize: 12, color: INK });
-s.addShape(pres.shapes.RECTANGLE, { x: 0.45, y: 3.7, w: 4.1, h: 1.38, fill: { color: LIGHT }, line: { color: LIGHT } });
-text(s, "Tire model alone: 25% of 404 stops in 2025 within 3 laps. With the team-stop model: 55%. It does just as well without our tire model (56%), so when teams pit is driven mostly by strategy, not tire wear.", 0.57, 3.76, 3.9, 1.28, { fontSize: 12, color: INK, valign: "middle" });
+head(s, "Step 1: tire model to pit lap", 0.45, 1.1, 4.1, RED);
+text(s, "Pick the lap with the least predicted time lost on the old plus new tires.", 0.45, 1.45, 4.1, 0.6, { fontSize: 13, color: INK });
+head(s, "Step 2: team-stop model", 0.45, 2.15, 4.1, RED);
+text(s, "Boosting model trained on 1,230 real stops (2022-2024): our pit window plus race context such as gap behind, position and stint.", 0.45, 2.5, 4.1, 0.9, { fontSize: 13, color: INK });
 img(s, "s_pit_backtest.png", 4.85, 1.12, 4.75);
-s.addNotes("Presenter: Isaiah. To turn predictions into a decision, for each possible pit lap we add up the predicted time lost on the current tires until then and on the new tires after, and take the minimum. We compared that with 404 real stops in 2025. Our tire models match the team within three laps about 25% of the time; the simple linear baseline does better because its curves are smoother. So we added a second step: a team-stop model, a gradient boosting model trained on 1,230 real stops from 2022 to 2024. It takes our recommended window plus race context, like the gap to the car behind, and predicts when the team will actually stop. That gets to 55%, but it scores the same without our tire model. So when teams actually pit is driven by strategy, like undercuts and planned stop counts, more than by the wear curve. We did not reach 60%.");
+takeaway(s, "Tire wear alone matches 25% of the 404 stops in 2025; adding race context, 55%. Race context without the tire model also gets 56%: when teams pit is mostly strategy.");
+s.addNotes("Presenter: Isaiah. Step one turns the tire forecast into a decision: for each possible pit lap, add up the predicted time lost on the current tires and on the new set, and take the minimum. Compared with 404 real stops in 2025, that matches the team within three laps 25% of the time; the smoother linear baseline does a bit better. Step two is a team-stop model: a boosting model trained on 1,230 real stops from 2022 to 2024 that takes our pit window plus race context, like the gap to the car behind, and predicts when the team will stop. That reaches 55%. But it scores the same without our tire model, so when teams pit is driven mostly by strategy, like undercuts and planned stop counts. We did not reach the 60% goal.");
 
 // ================================================================ 10. Demo
 s = slideWith("Demonstration: PitWall Dashboard", "Application");
@@ -259,13 +260,13 @@ img(s, "s_dashboard.png", 0.45, 1.12, DW);
 head(s, "Live demo", 7.3, 1.1, 2.3, RED);
 bullets(s, [
   "Pick a 2025 race, driver and stint",
-  "See the forecast, pit window, team-stop model's lap and the actual stop",
-  "Move the decision lap: the forecast updates after every lap",
+  "Forecast, pit window and the actual stop",
+  "Slide the decision lap",
   "Switch models",
-  "Plan a stint before it starts",
-], 7.3, 1.48, 2.3, 3.2, 12, 6);
-text(s, "Streamlit app; one recommendation takes 0.03 to 0.35 s.", 7.3, 4.6, 2.3, 0.5, { fontSize: 11 });
-s.addNotes("Presenter: Isaiah. Live demo, about two minutes. 1) Terminal: python -m pitwall ingest pulls all races and practice sessions in about 15 seconds. 2) Dashboard default: 2025 Spanish GP, Verstappen, stint 2 on softs: recommended lap 29, window 25 to 33, team-stop model lap 30 (shown as Typical team call), actual stop lap 29. 3) Move the decision lap slider to show the forecast update. 4) Switch the model to the linear baseline or LSTM. 5) Plan a stint tab. Backup stints: Austria, Hamilton, stint 1 (25 vs 26); Saudi Arabia, Russell, stint 1 (19 vs 20). Open the app before class; the first load takes about 30 seconds.");
+  "Plan a stint",
+], 7.3, 1.48, 2.3, 2.8, 13, 7);
+text(s, "One recommendation: 0.03 to 0.35 s", 7.3, 4.5, 2.3, 0.4, { fontSize: 11 });
+s.addNotes("Presenter: Isaiah. Live demo, about two minutes. 1) Terminal: python -m pitwall ingest pulls all races and practice sessions in about 15 seconds. 2) Dashboard default: 2025 Spanish GP, Verstappen, stint 2 on softs: recommended lap 29, window 25 to 33, team-stop model lap 30 (shown as Typical team call), actual stop lap 29. 3) Drag the decision lap slider to show the forecast updating. 4) Switch the model to the linear baseline or LSTM. 5) Plan a stint tab. Backup stints: Austria, Hamilton, stint 1 (25 vs 26); Saudi Arabia, Russell, stint 1 (19 vs 20). Open the app before class; the first load takes about 30 seconds.");
 
 // ================================================================ 11. Limitations
 pres.addSection({ title: "Conclusion" });
@@ -296,10 +297,10 @@ table(s, [
   ["Fast enough for the pit wall", "under 1 s", "0.03 to 0.35 s", { text: "Yes", color: "2E7D32", bold: true }],
 ], 0.45, 1.15, 9.1, [2.7, 1.9, 3.7, 0.8], 13, [], 0.36);
 bullets(s, [
-  "Final model: boosting + ridge average using the first 5 laps, corrected after every lap: about 0.38 s per lap error through the stint",
-  "Tire wear is predictable once a stint has started; race conditions alone are not enough",
-  "When teams pit depends mostly on strategy: the team-stop model reaches 55% even without tire predictions",
-], 0.45, 3.0, 9.1, 2.1, 15, 9);
+  "Final model: boosting + ridge, updated every lap (about 0.38 s per lap)",
+  "Tire wear is predictable once a stint is underway; conditions alone are not enough",
+  "When teams pit depends mostly on strategy, not tire wear",
+], 0.45, 3.05, 9.1, 2.0, 15, 9);
 s.addNotes("Presenter: Isaiah. Against our goals: the prediction goal was met with room to spare and the dashboard is fast. The pit timing goal was not met. Our main takeaways: once a set of tires has run a few laps, the rest of the stint is predictable about a third better than the baseline, and updating lap by lap helps further. But when teams pit is mainly a strategy decision, so a better pit tool needs strategy information, not just better tire predictions.");
 
 // ================================================================ 13. Questions
