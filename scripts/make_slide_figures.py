@@ -97,18 +97,20 @@ def train_vs_test():
 
 
 def horizon():
+    """Baseline vs. final model only, with the MAE value at every point."""
     d = pd.read_csv(M / "test_error_by_horizon.csv")
     x = np.arange(len(d))
     fig, ax = plt.subplots(figsize=(6.8, 4.4))
-    ax.plot(x, d["Linear baseline"], color=MID, ls=(0, (4, 3)), lw=2, marker="o", label="Linear baseline")
-    for m in ["Ridge", "Gradient boosting", "LSTM"]:
-        ax.plot(x, d[m], color=LIGHT, lw=2, marker="o", ms=5)
-    ax.plot([], [], color=LIGHT, lw=2, marker="o", ms=5, label="Ridge, GB, LSTM")
-    ax.plot(x, d[ENS], color=RED, lw=2.8, marker="o", label="GB + Ridge ensemble")
+    for col, color, ls, lab, dy in [("Linear baseline", MID, (0, (4, 3)), "Linear baseline", 0.035),
+                                     (ENS, RED, "-", "Final model (GB + Ridge)", -0.06)]:
+        ax.plot(x, d[col], color=color, ls=ls, lw=2.6, marker="o", label=lab)
+        for xi, v in zip(x, d[col]):
+            ax.text(xi, v + dy, f"{v:.2f}", ha="center", fontsize=12, color=color,
+                    fontweight="bold" if col == ENS else "normal")
     ax.set_xticks(x, ["1-5", "6-10", "11-15", "16-20", "21+"])
-    ax.set_ylim(0, 0.8)
+    ax.set_ylim(0, 0.85)
     ax.set_xlabel("Laps ahead of the decision point")
-    ax.set_ylabel("2025 test MAE (s)")
+    ax.set_ylabel("2025 test MAE (s per lap)")
     ax.legend(loc="lower right")
     save(fig, "s_horizon.png")
 
@@ -137,6 +139,10 @@ def update():
     fig, ax = plt.subplots(figsize=(7.2, 4.4))
     ax.plot(x, d["frozen_mae"], color=MID, ls=(0, (4, 3)), lw=2.2, marker="o", label="Forecast fixed after lap 5")
     ax.plot(x, d["updated_mae"], color=RED, lw=2.8, marker="o", label="Updated after every lap")
+    for xi, (a, b) in enumerate(zip(d["frozen_mae"], d["updated_mae"])):
+        if xi:
+            ax.text(xi, a + 0.025, f"{a:.2f}", ha="center", fontsize=12, color=MID)
+        ax.text(xi, b - 0.055, f"{b:.2f}", ha="center", fontsize=12, color=RED, fontweight="bold")
     ax.set_xticks(x, ["5", "6-9", "10-14", "15-19", "20+"])
     ax.set_ylim(0, 0.7)
     ax.set_xlabel("Laps already seen on the current set")
@@ -147,16 +153,17 @@ def update():
 
 def pit_backtest():
     s = pd.read_csv(M / "strategy_summary.csv")
-    names = {s["method"].iloc[0]: "Cost model (ensemble)", "LSTM (one decision at lap 5)": "Cost model (LSTM)",
-             "Linear baseline": "Cost model (linear baseline)",
-             "Learned layer (tire model + race context)": "Learned layer",
-             "Imitation only (race context, no tire model)": "Learned layer, no tire model",
+    names = {s["method"].iloc[0]: "Tire model (final)", "LSTM (one decision at lap 5)": "Tire model (LSTM)",
+             "Linear baseline": "Tire model (baseline)",
+             "Learned layer (tire model + race context)": "Team-stop model",
+             "Imitation only (race context, no tire model)": "Team-stop, no tire model",
              "Midpoint (no model)": "Midpoint of stint"}
     s["label"] = s["method"].map(names)
     s = s.iloc[::-1].reset_index(drop=True)
-    fig, ax = plt.subplots(figsize=(7.6, 4.4))
+    fig, ax = plt.subplots(figsize=(6.6, 4.8))
     y = np.arange(len(s))
-    colors = [RED if lab == "Learned layer" else (DARK if lab.startswith("Cost") else MID) for lab in s["label"]]
+    colors = [RED if lab == "Team-stop model" else (DARK if lab.startswith("Tire") else MID)
+              for lab in s["label"]]
     ax.barh(y, s["within_3_laps_pct"], color=colors, height=0.62)
     for yi, v in zip(y, s["within_3_laps_pct"]):
         ax.text(v + 0.8, yi, f"{v:.0f}%", va="center", fontsize=13)
@@ -164,7 +171,7 @@ def pit_backtest():
     ax.text(60.8, len(s) - 0.55, "Goal 60%", fontsize=12, va="center")
     ax.set_yticks(y, s["label"])
     ax.set_xlim(0, 72)
-    ax.set_xlabel(f"Within 3 laps of the actual stop (% of {int(s['stints'].iloc[0])} stops)")
+    ax.set_xlabel(f"Within 3 laps of actual stop (% of {int(s['stints'].iloc[0])})")
     ax.grid(axis="y", visible=False)
     ax.grid(axis="x", visible=True)
     save(fig, "s_pit_backtest.png")
